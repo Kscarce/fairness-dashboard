@@ -72,6 +72,8 @@ st.markdown(f"""
     .stTabs [data-baseweb="tab-list"] button {{
         color: {DARK} !important;
         font-size: 0.9rem !important;
+        padding-left: 1.2rem !important;
+        padding-right: 1.2rem !important;
     }}
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {{
         color: {PRIMARY} !important;
@@ -205,7 +207,7 @@ def badge(result):
 def tt(label, explanation):
     return f"<span class='tooltip'>{label}<span class='tooltiptext'>{explanation}</span></span>"
 
-tabs = st.tabs(["Overview", "Procedural Fairness Assessment", "Public Survey", "Discussion and Recommendations"])
+tabs = st.tabs(["Overview", "Fairness Assessment", "Survey", "Discussion"])
 
 # ══════════════════════════════════════════════════════════════
 # TAB 1: OVERVIEW
