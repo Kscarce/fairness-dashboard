@@ -55,6 +55,10 @@ st.markdown(f"""
 
     /* ── THEME OVERRIDES: prevent dark mode from breaking colors ── */
     .stApp {{ background-color: {BG} !important; }}
+    /* Hide Streamlit header, footer, and menu on mobile */
+    #MainMenu, header[data-testid="stHeader"], footer {{
+        display: none !important;
+    }}
     .stApp, .stApp p, .stApp span, .stApp div, .stApp label {{
         color: {DARK} !important;
     }}
@@ -85,6 +89,15 @@ st.markdown(f"""
         flex-wrap: nowrap !important;
         -webkit-overflow-scrolling: touch;
         gap: 0 !important;
+    }}
+    /* Make tabs sticky so they don't disappear on mobile */
+    .stTabs [data-baseweb="tab-list"] {{
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 999 !important;
+        background-color: {BG} !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.3rem !important;
     }}
     .stTabs [data-baseweb="tab-list"] button {{
         white-space: nowrap !important;
