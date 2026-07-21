@@ -46,6 +46,19 @@ st.markdown(f"""
     .kpi-label {{ font-size: 1.1rem; font-weight: 700; color: {DARK}; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem; }}
     .kpi-number {{ font-size: 4.5rem; font-weight: 700; color: {PRIMARY}; line-height: 1; }}
     .method-box {{ background: white; border-radius: 10px; padding: 1.2rem 1.5rem; margin-bottom: 0.8rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid {PRIMARY}; }}
+    .pip-row {{ margin-top: 0.5rem; font-size: 1.1rem; letter-spacing: 0.15rem; }}
+    .headline-metric {{ font-size: 2.4rem; font-weight: 700; line-height: 1.1; }}
+    .headline-metric-label {{ font-size: 0.78rem; color: #5a5a5a; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.1rem; }}
+    .spec-strip {{ display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.4rem 0 0.2rem; }}
+    .spec-item {{ background: #fbeef1; border-radius: 8px; padding: 0.5rem 0.9rem; font-size: 0.82rem; color: {DARK}; flex: 1 1 auto; min-width: 140px; }}
+    .spec-item strong {{ display: block; font-size: 0.72rem; color: {RULE_LABEL}; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.15rem; }}
+    .flow-row {{ display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.4rem; margin: 0.6rem 0; }}
+    .flow-step {{ background: white; border: 1px solid #f0d9df; border-left: 4px solid {PRIMARY}; border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.82rem; flex: 1 1 0; min-width: 120px; text-align: center; display: flex; align-items: center; justify-content: center; }}
+    .flow-arrow {{ display: flex; align-items: center; color: {PRIMARY}; font-size: 1.2rem; font-weight: 700; }}
+    .legend-card {{ background: white; border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 0.6rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid {LIGHT}; }}
+    .survey-hero {{ font-size: 2.2rem; font-weight: 700; color: {DARK}; line-height: 1.1; }}
+    .rec-num {{ display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem; border-radius:50%; background:{PRIMARY}; color:white !important; font-size:0.85rem; font-weight:700; flex-shrink:0; }}
+    .rec-chip {{ display:inline-block; background:#fbeef1; color:{RULE_LABEL} !important; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:0.15rem 0.6rem; border-radius:12px; }}
     .tooltip {{ position: relative; display: inline-block; cursor: help; border-bottom: 1px dotted #888; }}
     .tooltip .tooltiptext {{ visibility: hidden; width: 320px; background-color: #333; color: #fff;
         text-align: left; border-radius: 6px; padding: 8px 12px; position: absolute; z-index: 1;
@@ -168,57 +181,78 @@ equal_outcomes_pct = round((survey['fairness_type'] == 'Making sure the AI is eq
 non_technical_pct = round((survey['technical'] == "No, I work or study in another field / I'm a student in a non-technical subject").sum() / total_responses * 100)
 female_pct = round((survey['gender'] == 'Female').sum() / total_responses * 100)
 
+# ── Centralised threshold provenance (single source of truth) ──
+def tt(label, explanation):
+    return f"<span class='tooltip'>{label}<span class='tooltiptext'>{explanation}</span></span>"
+
+THRESH_AUC = "Minimum AUC-ROC of 0.80. Values above this level are commonly interpreted as showing good ability to distinguish between two outcomes (Mandrekar, 2010)."
+THRESH_DISPARITY = "A disparity threshold of \u00b10.10 was applied to both demographic parity difference and equalised odds difference, consistent with widely adopted conventions in algorithmic fairness research. Formal definitions of fairness remain contested and no single threshold is universally accepted (Corbett-Davies and Goel, 2018). Equalised odds was prioritised because differences in false positive and false negative rates relate more directly to potential clinical harm, particularly the risk of missed diagnoses."
+THRESH_REPR = "A representation ratio of 0.80 was used to identify underrepresented groups, adapted from the four-fifths principle commonly referenced in fairness evaluation. Dataset demographics were compared against real-world coronary heart disease prevalence (British Heart Foundation, 2021)."
+THRESH_CONSISTENCY = "A maximum instability rate of 5% was applied. Stability was assessed by introducing clinically realistic Gaussian noise to input features and measuring the resulting change in predictions (Odom et al., 2022). The 5% level was set as a conservative benchmark, since higher instability would undermine clinician trust in a clinical decision support tool."
+THRESH_CHECKLIST_CORR = "An 80% checklist completion threshold was defined by the researcher as an operational benchmark for sufficient coverage of correctability criteria, indicating that the majority of required governance and accountability mechanisms were present while allowing for minor gaps."
+THRESH_CHECKLIST_ETH = "An 80% checklist completion threshold was defined by the researcher as an operational benchmark for sufficient coverage of ethicality criteria, indicating that the majority of required ethical and legal standards were met while allowing for minor gaps."
+
 criteria = {
     "Accuracy": {
         "purpose": "Predictions should be reliable and minimise diagnostic errors.",
         "baseline": "PASS", "mitigated": "PASS",
-        "baseline_finding": "Overall accuracy (84.2%) met the 80% clinical <span class='tooltip'>threshold<span class='tooltiptext'>Minimum accuracy of 80%. Selected based on clinical machine learning literature reporting acceptable performance levels for healthcare prediction models (Liu et al., 2025; Simon and Aliferis, 2024).</span></span>. However, aggregate accuracy alone can hide differences between patient groups. As shown in the Bias Suppression assessment, performance was lower for female patients.",
-        "mitigated_finding": "Overall accuracy decreased slightly from 84.2% to 80.4%, remaining above the 80% clinical <span class='tooltip'>threshold<span class='tooltiptext'>Minimum accuracy of 80%. Selected based on clinical machine learning literature reporting acceptable performance levels for healthcare prediction models (Liu et al., 2025; Simon and Aliferis, 2024).</span></span>. This reduction was a deliberate tradeoff to improve fairness across patient groups.",
+        "headline": "0.904", "headline_label": "AUC-ROC",
+        "mitigated_headline": "0.840", "mitigated_headline_label": "AUC-ROC",
+        "baseline_finding": "AUC-ROC of 0.904 exceeded the 0.80 " + tt("threshold", THRESH_AUC) + ", indicating strong ability to distinguish between patients with and without heart disease. Overall accuracy was 84.2%. However, aggregate performance can hide differences between patient groups, and as shown in the Bias Suppression assessment, recall was lower for female patients.",
+        "mitigated_finding": "After fairness-aware retraining, AUC-ROC decreased to 0.840 and overall accuracy to 80.4%, both remaining above the 0.80 " + tt("threshold", THRESH_AUC) + ". This reduction was a deliberate tradeoff to improve fairness across patient groups.",
         "metrics": "Overall accuracy, AUC-ROC, precision, recall, F1-score"
     },
     "Bias Suppression": {
         "purpose": "The tool should not be less accurate for some patient groups than others.",
         "baseline": "FAIL", "mitigated": "PARTIAL",
-        "baseline_finding": "Female patients were identified with heart disease at a much lower rate (62.5%) than male patients (82.8%). Both fairness measures exceeded the <span class='tooltip'>threshold<span class='tooltiptext'>Fairness disparity measures should remain within \u00b10.10. This follows commonly used fairness evaluation conventions, where differences above 0.10 may indicate meaningful group disparities (Fairlearn, 2024).</span></span>: demographic parity difference was 0.264 and equalised odds difference was 0.203.",
-        "mitigated_finding": "After mitigation, female recall improved to 87.5% and male recall decreased to 76.8%. Demographic parity difference reduced to 0.041, now within the <span class='tooltip'>threshold<span class='tooltiptext'>Fairness disparity measures should remain within \u00b10.10. This follows commonly used fairness evaluation conventions, where differences above 0.10 may indicate meaningful group disparities (Fairlearn, 2024).</span></span>. Equalised odds difference remained at 0.212, partly due to limited female test set size (n=27).",
+        "headline": "0.264 / 0.203", "headline_label": "Parity / equalised odds difference",
+        "mitigated_headline": "0.041 / 0.212", "mitigated_headline_label": "Parity / equalised odds difference",
+        "baseline_finding": "Female patients were identified with heart disease at a much lower rate (62.5%) than male patients (82.8%). Both fairness measures exceeded the " + tt("threshold", THRESH_DISPARITY) + ", with a demographic parity difference of 0.264 and an equalised odds difference of 0.203.",
+        "mitigated_finding": "After mitigation, female recall improved to 87.5% and male recall decreased to 76.8%. Demographic parity difference reduced to 0.041, now within the " + tt("threshold", THRESH_DISPARITY) + ". Equalised odds difference remained at 0.212, partly due to the limited female test set size (n=27).",
         "metrics": "Demographic parity difference, equalised odds difference, group-level recall"
     },
     "Representativeness": {
         "purpose": "Training data must reflect the full range of patients the tool will be used on.",
         "baseline": "FAIL", "mitigated": "FAIL",
-        "baseline_finding": "Female patients made up 21.0% of the dataset compared to 33.0% in real-world CHD admissions (BHF, 2021), below the <span class='tooltip'>threshold<span class='tooltiptext'>Representation ratio \u22650.80. This threshold was adapted from the four-fifths rule commonly used in algorithmic fairness assessment (Fairlearn, 2024), applied here to compare dataset demographics against real-world disease prevalence (BHF, 2021).</span></span> (ratio 0.64). Age distribution also skews younger than real-world CHD prevalence.",
-        "mitigated_finding": "Unchanged. Algorithmic mitigation cannot fix data composition. Improving representativeness requires collecting more diverse clinical data.",
-        "metrics": "Representation ratio (dataset proportion / real-world proportion)"
+        "headline": "0.64", "headline_label": "Representation ratio",
+        "mitigated_headline": "0.64", "mitigated_headline_label": "Representation ratio",
+        "baseline_finding": "Female patients made up 21.0% of the dataset compared to 33.0% in real-world CHD admissions (BHF, 2021), giving a representation ratio of 0.64, below the " + tt("threshold", THRESH_REPR) + ". The age distribution also skews younger than real-world CHD prevalence.",
+        "mitigated_finding": "Unchanged, because algorithmic mitigation cannot fix data composition. Improving representativeness requires collecting more diverse clinical data.",
+        "metrics": "Representation ratio (dataset proportion divided by real-world proportion)"
     },
     "Consistency": {
         "purpose": "The tool must make stable, predictable decisions for similar patients.",
         "baseline": "FAIL", "mitigated": "FAIL",
-        "baseline_finding": "When small variations were applied to patient data, 8.7% of predictions changed, exceeding the 5% <span class='tooltip'>threshold<span class='tooltiptext'>5% instability threshold, set as a conservative benchmark for clinical decision support. No established standard exists for this type of prediction stability testing; this threshold was defined by the researcher.</span></span>. Instability was highest for under-45 patients (15.9%).",
-        "mitigated_finding": "Unchanged. Consistency improvements require more representative training data so the model has stronger confidence across all patient groups.",
+        "headline": "8.7%", "headline_label": "Predictions changed",
+        "mitigated_headline": "8.7%", "mitigated_headline_label": "Predictions changed",
+        "baseline_finding": "When small, clinically realistic variations were applied to patient data, 8.7% of predictions changed, exceeding the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". Instability was highest for under-45 patients (15.9%).",
+        "mitigated_finding": "Unchanged, because consistency improvements require more representative training data so the model has stronger confidence across all patient groups.",
         "metrics": "Percentage of predictions that change under minor input perturbation"
     },
     "Correctability": {
         "purpose": "There must be a way to review, challenge, and correct the tool's decisions.",
         "baseline": "FAIL", "mitigated": "PARTIAL",
-        "baseline_finding": "Met 3 of 7 checklist criteria, below the 80% pass <span class='tooltip'>threshold<span class='tooltiptext'>An 80% checklist completion threshold was defined by the researcher as an operational benchmark for sufficient coverage of correctability criteria. This threshold was selected to indicate that the majority of required governance and accountability mechanisms were present while allowing for minor gaps.</span></span>. The pipeline lacked clinician override, patient challenge mechanism, audit trail, and model version history. The dashboard partially addresses this through transparent communication of predictions and uncertainty.",
-        "mitigated_finding": "Confidence-based flagging was added: predictions with less than 70% model confidence are flagged for clinician review (20.1% of test cases). Met 4 of 8 criteria, still below the 80% pass <span class='tooltip'>threshold<span class='tooltiptext'>An 80% checklist completion threshold was defined by the researcher as an operational benchmark for sufficient coverage of correctability criteria. This threshold was selected to indicate that the majority of required governance and accountability mechanisms were present while allowing for minor gaps.</span></span>.",
+        "headline": "3 of 7", "headline_label": "Governance criteria met",
+        "mitigated_headline": "4 of 8", "mitigated_headline_label": "Governance criteria met",
+        "baseline_finding": "Met 3 of 7 checklist criteria, below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ". The pipeline lacked a clinician override, a patient challenge mechanism, an audit trail, and model version history. The dashboard partially addresses this through transparent communication of predictions and uncertainty.",
+        "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence below 70% are flagged for clinician review (20.1% of test cases). This raised the count to 4 of 8 criteria, still below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ".",
         "metrics": "Proportion of correctability checklist criteria met (qualitative assessment)"
     },
     "Ethicality": {
         "purpose": "The tool must meet ethical and legal standards and respect patient rights.",
         "baseline": "PASS", "mitigated": "PASS",
-        "baseline_finding": "Met 7 of 8 checklist criteria (87.5%), above the 80% <span class='tooltip'>threshold<span class='tooltiptext'>An 80% checklist completion threshold was defined by the researcher as an operational benchmark for sufficient coverage of ethicality criteria. This threshold was selected to indicate that the majority of required ethical and legal standards were met while allowing for minor gaps.</span></span>. The one gap: consent practices for secondary ML use were not available within the dataset documentation.",
-        "mitigated_finding": "Unchanged. The informed consent limitation is inherent to retrospective clinical datasets.",
+        "headline": "7 of 8", "headline_label": "Ethics criteria met",
+        "mitigated_headline": "7 of 8", "mitigated_headline_label": "Ethics criteria met",
+        "baseline_finding": "Met 7 of 8 checklist criteria (87.5%), above the 80% " + tt("threshold", THRESH_CHECKLIST_ETH) + ". The one gap was that consent practices for secondary ML use were not available within the dataset documentation.",
+        "mitigated_finding": "Unchanged, as the informed consent limitation is inherent to retrospective clinical datasets.",
         "metrics": "Proportion of ethicality checklist criteria met (qualitative assessment)"
     }
 }
 
 def badge(result):
     cls = {"PASS": "pass", "FAIL": "fail", "PARTIAL": "partial"}[result]
-    return f"<span class='badge {cls}-badge'>{result}</span>"
-
-def tt(label, explanation):
-    return f"<span class='tooltip'>{label}<span class='tooltiptext'>{explanation}</span></span>"
+    icon = {"PASS": "\u2713", "FAIL": "\u2715", "PARTIAL": "\u26a0"}[result]
+    return f"<span class='badge {cls}-badge'>{icon} {result}</span>"
 
 tabs = st.tabs(["Overview", "Fairness Assessment", "Survey", "Discussion"])
 
@@ -227,16 +261,55 @@ tabs = st.tabs(["Overview", "Fairness Assessment", "Survey", "Discussion"])
 # ══════════════════════════════════════════════════════════════
 with tabs[0]:
     st.markdown("<h1>Evaluating Procedural Fairness in Healthcare AI</h1>", unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style='font-size:1rem; color:{DARK}; line-height:1.7; margin:1rem 0 1.4rem;'>
+        Artificial intelligence is increasingly being used to support medical decision-making,
+        including predicting a patient's risk of heart disease. However, accuracy alone is not
+        enough to make an AI system trustworthy. For healthcare AI to be responsible, it must
+        also be fair across different groups of patients, transparent, and accountable when
+        mistakes occur.<br><br>
+        This dashboard evaluates a heart disease prediction model against six principles of fair
+        decision-making, and explores whether its performance aligns with what the public expects
+        from medical AI.
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown(f"""
     <div class='method-box'>
         <strong>About This Dashboard</strong><br><br>
         <strong>What is this?</strong> A fairness assessment of a heart disease prediction tool,
         evaluating whether it meets six procedural fairness criteria.<br><br>
-        <strong>What was evaluated?</strong> A logistic regression classifier trained on 918 patient
-        records from the UCI Heart Disease dataset, assessed against six criteria based on
-        Leventhal's (1980) procedural justice framework.<br><br>
+        <strong>What was evaluated?</strong> A machine learning model assessed against six criteria
+        based on Leventhal's (1980) procedural justice framework, adapted for healthcare following
+        Jabagi et al. (2025).<br><br>
         <strong>What am I looking at?</strong> Results from the pipeline evaluation and a
         public survey (n=325), presented across four tabs.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div class='rule-label' style='margin-top:1.2rem;'>The Model</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='spec-strip'>
+        <div class='spec-item'><strong>Algorithm</strong>Logistic regression classifier</div>
+        <div class='spec-item'><strong>Data</strong>UCI Heart Disease, 918 records</div>
+        <div class='spec-item'><strong>Predicts</strong>Presence of heart disease</div>
+        <div class='spec-item'><strong>Known limitation</strong>Only 21% of records are female</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div class='rule-label' style='margin-top:1rem;'>How the Evaluation Works</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='flow-row'>
+        <div class='flow-step'>Patient data</div>
+        <div class='flow-arrow'>\u2192</div>
+        <div class='flow-step'>Model trained</div>
+        <div class='flow-arrow'>\u2192</div>
+        <div class='flow-step'>Tested against 6 fairness criteria</div>
+        <div class='flow-arrow'>\u2192</div>
+        <div class='flow-step'>2 mitigations applied</div>
+        <div class='flow-arrow'>\u2192</div>
+        <div class='flow-step'>Results shown here</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -247,7 +320,8 @@ with tabs[0]:
         <div class='card' style='text-align:center; padding:2rem;'>
             <div class='kpi-label'>Fairness Criteria Met</div>
             <div class='kpi-number'>2 of 6</div>
-            <div style='font-size:0.82rem; color:#666; margin-top:0.3rem;'>2 PASS · 4 FAIL</div>
+            <div class='pip-row'><span style='color:{PASS_COLOR};'>\u25cf\u25cf</span><span style='color:#d9b3bd;'>\u25cb\u25cb\u25cb\u25cb</span></div>
+            <div style='font-size:0.82rem; color:#5f5f5f; margin-top:0.3rem;'>2 pass, 4 fail (baseline)</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
@@ -273,24 +347,21 @@ with tabs[0]:
         """, unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-    st.markdown("## Procedural Fairness Criteria at a Glance")
-    st.markdown(f"""<div style='font-size:0.85rem; color:#888; margin-bottom:1rem;'>
-        Definitions adapted from Leventhal's (1980) procedural justice rules for healthcare
-        automated decision-making, following the approach of Jabagi et al. (2025).
+    st.markdown("## The Six Principles of Fair Decision-Making")
+    st.markdown(f"""<div style='font-size:0.9rem; color:#5f5f5f; margin-bottom:1rem; line-height:1.6;'>
+        This model is evaluated against six criteria. Here is what each one means. The results for
+        each follow in the Fairness Assessment tab. Definitions are adapted from Leventhal's (1980)
+        procedural justice rules for healthcare automated decision-making, following the approach of
+        Jabagi et al. (2025).
     </div>""", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
     for i, (name, data) in enumerate(criteria.items()):
-        result = data["baseline"]
-        cls = {"PASS": "pass", "FAIL": "fail", "PARTIAL": "partial"}[result]
         col = col1 if i % 2 == 0 else col2
         with col:
             st.markdown(f"""
-            <div class='card {cls}-card' style='margin-bottom:0.6rem;'>
-                <div style='display:flex; justify-content:space-between; align-items:center;'>
-                    <span class='rule-name'>{name}</span>
-                    {badge(result)}
-                </div>
+            <div class='legend-card'>
+                <span class='rule-name'>{name}</span>
                 <div class='rule-desc'>{data['purpose']}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -320,15 +391,22 @@ with tabs[1]:
     for name, data in criteria.items():
         result = data["mitigated"] if show_mit else data["baseline"]
         finding = data["mitigated_finding"] if show_mit else data["baseline_finding"]
+        headline = data["mitigated_headline"] if show_mit else data["headline"]
+        headline_label = data["mitigated_headline_label"] if show_mit else data["headline_label"]
         cls = {"PASS": "pass", "FAIL": "fail", "PARTIAL": "partial"}[result]
+        num_color = {"PASS": PASS_COLOR, "FAIL": FAIL_COLOR, "PARTIAL": PARTIAL_COLOR}[result]
 
         st.markdown(f"""
         <div class='card {cls}-card' style='margin-bottom:0.3rem;'>
-            <div style='display:flex; justify-content:space-between; align-items:center;'>
-                <span class='rule-name'>{name}</span>
-                {badge(result)}
+            <div style='display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;'>
+                <div style='flex:1;'>
+                    <span class='rule-name'>{name}</span>
+                    <div class='headline-metric' style='color:{num_color}; margin-top:0.3rem;'>{headline}</div>
+                    <div class='headline-metric-label'>{headline_label}</div>
+                </div>
+                <div style='flex-shrink:0;'>{badge(result)}</div>
             </div>
-            <div style='margin-top:0.6rem; font-size:0.88rem; color:#444;'>{finding}</div>
+            <div style='margin-top:0.7rem; font-size:0.88rem; color:#444; line-height:1.55;'>{finding}</div>
         </div>
         """, unsafe_allow_html=True)
         with st.expander(f"Purpose and metrics: {name}"):
@@ -364,9 +442,9 @@ with tabs[1]:
             elif name == "Ethicality":
                 checklist = [
                     ("Ethics approval granted by Newcastle University", True),
-                    ("Dataset is fully anonymised — no patient identifiers", True),
+                    ("Dataset is fully anonymised, no patient identifiers", True),
                     ("No personal data collected or processed", True),
-                    ("GDPR compliance — survey is anonymous", True),
+                    ("GDPR compliance, survey is anonymous", True),
                     ("Dataset used within its intended research purpose", True),
                     ("Patients gave informed consent for ML research use", False),
                     ("System designed to avoid unjust harm to patients", True),
@@ -415,9 +493,9 @@ with tabs[1]:
     st.caption("Recall measures the percentage of actual heart disease cases the tool correctly identified.")
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(name='Male', x=['Baseline model','Post-mitigation model'], y=[82.8,76.8], marker_color=PRIMARY, text=['82.8%','76.8%'], textposition='outside', width=0.3))
-    fig.add_trace(go.Bar(name='Female', x=['Baseline model','Post-mitigation model'], y=[62.5,87.5], marker_color=LIGHT, text=['62.5%','87.5%'], textposition='outside', width=0.3))
-    fig.add_hline(y=80, line_dash="dot", line_color="#999", annotation_text="80% clinical threshold", annotation_position="bottom right")
+    fig.add_trace(go.Bar(name='Male', x=['Baseline model','Post-mitigation model'], y=[82.8,76.8], marker_color="#7b2d4e", text=['82.8%','76.8%'], textposition='outside', width=0.3))
+    fig.add_trace(go.Bar(name='Female', x=['Baseline model','Post-mitigation model'], y=[62.5,87.5], marker=dict(color="#e8a3b8", pattern=dict(shape="/")), text=['62.5%','87.5%'], textposition='outside', width=0.3))
+    fig.add_hline(y=80, line_dash="dot", line_color="#5f5f5f", annotation_text="80% clinical threshold", annotation_position="bottom right")
     fig.update_layout(barmode='group', yaxis=dict(range=[0,105], showgrid=False, showticklabels=False), xaxis=dict(showgrid=False), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', legend=dict(orientation='h', y=1.1), margin=dict(t=20,b=20,l=0,r=120), font=dict(color=DARK, size=13), height=350)
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
@@ -425,18 +503,18 @@ with tabs[1]:
     with col1:
         st.markdown(f"""
         <div class='card pass-card'>
-            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Demographic Parity Difference  ✅ Improved</div>
+            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Demographic Parity Difference ✓ Improved</div>
             <div style='color:{PASS_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.264 → 0.041</div>
-            <div style='font-size:0.86rem; color:#444;'>The difference in positive prediction rates between male and female patients decreased and is now within the predefined ±0.10 <span class='tooltip'>threshold<span class='tooltiptext'>Fairness disparity measures should remain within ±0.10. This follows commonly used fairness evaluation conventions, where differences above 0.10 may indicate meaningful group disparities (Fairlearn, 2024).</span></span>.</div>
+            <div style='font-size:0.86rem; color:#444;'>The difference in positive prediction rates between male and female patients decreased and is now within the predefined ±0.10 {tt("threshold", THRESH_DISPARITY)}.</div>
             <div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>Measures whether the model flags patients across groups at similar rates.</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
         st.markdown(f"""
         <div class='card partial-card'>
-            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Equalised Odds Difference  ⚠️ Above Threshold</div>
+            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Equalised Odds Difference ⚠ Above Threshold</div>
             <div style='color:{PARTIAL_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.203 → 0.212</div>
-            <div style='font-size:0.86rem; color:#444;'>The difference in error rates between male and female patients remained above the ±0.10 <span class='tooltip'>threshold<span class='tooltiptext'>Fairness disparity measures should remain within ±0.10. This follows commonly used fairness evaluation conventions, where differences above 0.10 may indicate meaningful group disparities (Fairlearn, 2024).</span></span> after mitigation.</div>
+            <div style='font-size:0.86rem; color:#444;'>The difference in error rates between male and female patients remained above the ±0.10 {tt("threshold", THRESH_DISPARITY)} after mitigation.</div>
             <div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>This may be influenced by the small number of female patients in the test set (n=27), which limits the reliability of this measure.</div>
         </div>
         """, unsafe_allow_html=True)
@@ -519,7 +597,7 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     with col3: st.markdown(f"<div class='survey-stat'><div class='survey-pct'>{non_technical_pct}%</div><div class='survey-label'>Non-technical</div></div>", unsafe_allow_html=True)
     with col4: st.markdown(f"<div class='survey-stat'><div class='survey-pct'>4</div><div class='survey-label'>Age groups</div></div>", unsafe_allow_html=True)
 
-    st.markdown("""<div style='color:#999; font-size:0.78rem; text-align:center; padding:0.5rem 0;'>Age: 41–60 (29.2%) · Under 25 (28.3%) · Over 60 (22.8%) · 25–40 (19.7%)</div>""", unsafe_allow_html=True)
+    st.markdown("""<div style='color:#5f5f5f; font-size:0.78rem; text-align:center; padding:0.5rem 0;'>Age: 41–60 (29.2%) · Under 25 (28.3%) · Over 60 (22.8%) · 25–40 (19.7%)</div>""", unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("## Strongest Public Priorities: Human Oversight and Transparency")
@@ -528,8 +606,8 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     <div class='tier-section'>
         <div class='rule-label'>Correctability</div>
         <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;'>
-            <div><div class='hero-number'>{challenge_pct}%</div><div class='hero-desc'>chose the option supporting patients' right to request a human review of an AI decision, even at cost or delay</div></div>
-            <div><div class='hero-number'>{human_pct}%</div><div class='hero-desc'>chose the option supporting human doctor involvement in medical decisions, regardless of AI accuracy</div></div>
+            <div><div class='survey-hero'>{challenge_pct}%</div><div class='hero-desc'>chose the option supporting patients' right to request a human review of an AI decision, even at cost or delay</div></div>
+            <div><div class='survey-hero'>{human_pct}%</div><div class='hero-desc'>chose the option supporting human doctor involvement in medical decisions, regardless of AI accuracy</div></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -538,8 +616,8 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     <div class='tier-section'>
         <div class='rule-label'>Ethicality</div>
         <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;'>
-            <div><div class='hero-number'>{consent_pct}%</div><div class='hero-desc'>chose the option supporting patients being informed when an AI tool is used in their care</div></div>
-            <div><div class='hero-number'>{data_consent_pct}%</div><div class='hero-desc'>chose the option supporting patients being informed when their records are used to train AI, even if anonymised</div></div>
+            <div><div class='survey-hero'>{consent_pct}%</div><div class='hero-desc'>chose the option supporting patients being informed when an AI tool is used in their care</div></div>
+            <div><div class='survey-hero'>{data_consent_pct}%</div><div class='hero-desc'>chose the option supporting patients being informed when their records are used to train AI, even if anonymised</div></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -549,8 +627,8 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     st.markdown(f"""
     <div class='tier-section'>
         <div class='rule-label'>Bias Suppression / Representativeness</div>
-        <div style='display:grid; grid-template-columns:auto 1fr; gap:1.5rem; align-items:center;'>
-            <div><div style='font-size:2.2rem; font-weight:700; color:{DARK};'>{tool_a_pct}%</div><div class='hero-desc'>chose equal performance across all patient groups over higher overall accuracy</div></div>
+        <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:center;'>
+            <div><div class='survey-hero'>{tool_a_pct}%</div><div class='hero-desc'>chose equal performance across all patient groups over higher overall accuracy</div></div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -560,8 +638,8 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     st.markdown(f"""
     <div class='tier-section'>
         <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;'>
-            <div><div style='font-size:2.2rem; font-weight:700; color:{DARK};'>{same_rules_pct}%</div><div class='hero-desc'>favoured applying the same rules to every patient regardless of outcome</div></div>
-            <div><div style='font-size:2.2rem; font-weight:700; color:{DARK};'>{equal_outcomes_pct}%</div><div class='hero-desc'>prioritised equal accuracy across all patient groups over uniform rules</div></div>
+            <div><div class='survey-hero'>{same_rules_pct}%</div><div class='hero-desc'>favoured applying the same rules to every patient regardless of outcome</div></div>
+            <div><div class='survey-hero'>{equal_outcomes_pct}%</div><div class='hero-desc'>prioritised equal accuracy across all patient groups over uniform rules</div></div>
         </div>
         <div style='font-size:0.82rem; color:#666; margin-top:1rem; padding-top:0.8rem; border-top:1px solid #eee;'>The majority leaned toward outcome-based fairness rather than procedural consistency.</div>
     </div>
@@ -571,17 +649,17 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     st.markdown("## Additional Context: Trust in AI")
     st.markdown(f"""
     <div class='tier-section'>
-        <div style='display:grid; grid-template-columns:auto 1fr; gap:1.5rem; align-items:center;'>
-            <div><div style='font-size:2.2rem; font-weight:700; color:{DARK};'>{trust_pct}%</div></div>
+        <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:center;'>
+            <div><div class='survey-hero'>{trust_pct}%</div></div>
             <div>
                 <div class='hero-desc'>reported some level of trust in healthcare AI but believed human oversight should always remain.</div>
-                <div style='font-size:0.78rem; color:#888; margin-top:0.4rem; font-style:italic;'>This finding provides context on public expectations of AI reliability and oversight but does not directly measure accuracy as a fairness criterion.</div>
+                <div style='font-size:0.78rem; color:#5f5f5f; margin-top:0.4rem; font-style:italic;'>This finding provides context on public expectations of AI reliability and oversight but does not directly measure accuracy as a fairness criterion.</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""<div style='font-size:0.82rem; color:#888; font-style:italic; margin-top:1rem;'>
+    st.markdown("""<div style='font-size:0.82rem; color:#5f5f5f; font-style:italic; margin-top:1rem;'>
         Note: Accuracy was assessed computationally through the ML pipeline. The survey did not
         include a question designed to isolate public perceptions of accuracy as a procedural fairness criterion.
     </div>""", unsafe_allow_html=True)
@@ -598,14 +676,16 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
             ('data_consent', 'Should patients be informed when their data trains AI?', ['Yes — patients should always be informed how their data is used', 'Only if there is a chance they could be identified from the data', 'No — anonymised data can be used freely for medical research']),
             ('trust', 'How much do you trust AI in healthcare?', ['I trust them somewhat — but there should always be human oversight', "I don't trust them — medical decisions should be made by humans only", "I'm not sure", 'I trust them fully — AI is more objective than humans']),
         ]
+        import textwrap
         for col_name, title, main_options in questions:
             counts = survey[col_name].value_counts()
             filtered = counts[counts.index.isin(main_options)]
             other = counts[~counts.index.isin(main_options)].sum()
             if other > 0: filtered['Other responses'] = other
             pcts = (filtered / total_responses * 100).round(0).astype(int)
-            fig = go.Figure(go.Bar(x=pcts.values, y=pcts.index, orientation='h', marker_color=PRIMARY, text=[f"{v}%" for v in pcts.values], textposition='outside'))
-            fig.update_layout(title=dict(text=title, font=dict(size=12)), xaxis=dict(showgrid=False, showticklabels=False, range=[0,115]), yaxis=dict(showgrid=False, autorange='reversed'), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', margin=dict(t=35,b=10,l=0,r=60), height=max(160, len(filtered)*45), font=dict(color=DARK, size=11))
+            wrapped_labels = ['<br>'.join(textwrap.wrap(str(lbl), 40)) for lbl in pcts.index]
+            fig = go.Figure(go.Bar(x=pcts.values, y=wrapped_labels, orientation='h', marker_color=PRIMARY, text=[f"{v}%" for v in pcts.values], textposition='outside'))
+            fig.update_layout(title=dict(text=title, font=dict(size=13)), xaxis=dict(showgrid=False, showticklabels=False, range=[0,118]), yaxis=dict(showgrid=False, autorange='reversed'), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', margin=dict(t=38,b=10,l=0,r=55), height=max(170, len(filtered)*52), font=dict(color=DARK, size=11))
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 # ══════════════════════════════════════════════════════════════
@@ -617,25 +697,27 @@ with tabs[3]:
 
     st.markdown(f"""
     <div class='card' style='background:#fff0f3; border-left:4px solid {PRIMARY}; margin-bottom:1.5rem;'>
-        This tab brings together findings from two independent evidence sources. The pipeline evaluates
-        the technical and procedural fairness of the model, while the public survey explores expectations
-        of fairness in healthcare AI. Where findings are discussed together, this represents a comparison
-        of perspectives rather than a direct validation between sources.
+        This tab presents findings from two independent sources of evidence. The pipeline evaluates
+        the technical and procedural fairness of the model, while the public survey explores what
+        people expect from fairness in healthcare AI. These are kept separate throughout, because
+        they measure different things and one does not validate the other. They are brought together
+        only in the final recommendations, where both help identify priorities for responsible deployment.
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("## Key Pipeline Findings")
     pipeline_rows = [
-        ("Accuracy", "Overall accuracy met the clinical threshold, but aggregate performance masked lower recall for female patients."),
+        ("Accuracy", "AUC-ROC (0.904) exceeded the 0.80 threshold, indicating strong ability to distinguish between patients with and without heart disease. However, aggregate performance masked lower recall for female patients."),
         ("Bias Suppression", "Bias mitigation substantially reduced disparities between male and female patients, although equalised odds remained above the predefined threshold."),
         ("Representativeness", "Female patients and younger age groups were underrepresented compared with real-world disease prevalence."),
-        ("Consistency", "Predictions changed under small input perturbations, with instability highest among younger patients."),
+        ("Consistency", "Predictions changed under small, clinically realistic input perturbations, with instability highest among younger patients."),
         ("Correctability", "The pipeline lacked key correctability mechanisms. Confidence-based flagging was introduced to partially address this, improving criteria met from 3 of 7 to 4 of 8."),
         ("Ethicality", "Most ethical criteria were satisfied, but consent practices for secondary ML use were not documented."),
     ]
     pipeline_html = f"""
-    <table style='width:100%; border-collapse:collapse; font-size:0.88rem;'>
-        <thead><tr style='border-bottom:2px solid #ddd;'>
+    <div style='background:#7b2d4e; color:white; padding:0.5rem 0.8rem; border-radius:8px 8px 0 0; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;'>Evidence source 1: Technical pipeline</div>
+    <table style='width:100%; border-collapse:collapse; font-size:0.88rem; border:1px solid #f0d9df;'>
+        <thead><tr style='border-bottom:2px solid #e0c3cc; background:#fbeef1;'>
             <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK}; width:160px;'>Criterion</th>
             <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK};'>Finding</th>
         </tr></thead>
@@ -653,8 +735,9 @@ with tabs[3]:
         ("Trust in AI (Contextual)", f"{trust_pct}% reported some level of trust in AI but believed human oversight should remain. Accuracy was not directly assessed."),
     ]
     survey_html = f"""
-    <table style='width:100%; border-collapse:collapse; font-size:0.88rem;'>
-        <thead><tr style='border-bottom:2px solid #ddd;'>
+    <div style='background:#3d6b7a; color:white; padding:0.5rem 0.8rem; border-radius:8px 8px 0 0; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;'>Evidence source 2: Public survey</div>
+    <table style='width:100%; border-collapse:collapse; font-size:0.88rem; border:1px solid #cfe0e5;'>
+        <thead><tr style='border-bottom:2px solid #b8d4db; background:#eef5f7;'>
             <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK}; width:200px;'>Theme</th>
             <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK};'>Finding</th>
         </tr></thead>
@@ -665,13 +748,13 @@ with tabs[3]:
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("## Impact of Mitigation Strategies")
     st.markdown("""<div style='font-size:0.88rem; color:#555; margin-bottom:1rem;'>
-        The following section summarises the outcomes of the mitigation strategies evaluated in the pipeline.
-        Survey findings are included separately to provide context on related public expectations.
+        This section summarises the outcomes of the two mitigation strategies evaluated in the pipeline.
+        These are technical results only.
     </div>""", unsafe_allow_html=True)
 
-    RECALL_TT = tt("Recall", "The percentage of patients who actually had heart disease that the model correctly identified. Higher is better — a lower recall means more patients with the disease were missed.")
+    RECALL_TT = tt("Recall", "The percentage of patients who actually had heart disease that the model correctly identified. Higher is better, because a lower recall means more patients with the disease were missed.")
     DPD_TT = tt("Demographic parity difference", "Measures whether the model flags patients for heart disease at similar rates across groups. A value closer to 0 means the model treats groups more equally.")
-    ACC_TT = tt("Overall accuracy", "The percentage of all predictions (both positive and negative) that the model got correct across all patients combined.")
+    ACC_TT = tt("Overall accuracy", "The percentage of all predictions, both positive and negative, that the model got correct across all patients combined.")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -680,15 +763,12 @@ with tabs[3]:
             <div style='font-weight:600; margin-bottom:0.6rem;'>Bias Mitigation</div>
             <div style='display:flex; gap:1.5rem; margin-bottom:0.6rem;'>
                 <div style='text-align:center;'>
-                    <div style='font-size:0.75rem; color:#888;'>Female {RECALL_TT}</div>
-                    <div style='font-size:1.8rem; font-weight:700; color:{PASS_COLOR};'>62.5% → 87.5%</div>
+                    <div style='font-size:0.75rem; color:#5f5f5f;'>Female {RECALL_TT}</div>
+                    <div style='font-size:1.8rem; font-weight:700; color:{PASS_COLOR};'>62.5% \u2192 87.5%</div>
                 </div>
             </div>
-            <div style='font-size:0.86rem; color:#444;'>
-                {DPD_TT} reduced from 0.264 to 0.041. {ACC_TT} decreased from 84.2% to 80.4% — a deliberate tradeoff.
-            </div>
-            <div style='font-size:0.82rem; color:#888; margin-top:0.6rem; padding-top:0.4rem; border-top:1px solid #eee;'>
-                <strong>Public perspective:</strong> Separately, survey responses indicated that respondents valued equal performance across groups over higher overall accuracy.
+            <div style='font-size:0.86rem; color:#444; line-height:1.55;'>
+                {DPD_TT} reduced from 0.264 to 0.041. {ACC_TT} decreased from 84.2% to 80.4% and AUC-ROC from 0.904 to 0.840, both remaining above threshold, a deliberate tradeoff to improve fairness.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -698,15 +778,12 @@ with tabs[3]:
             <div style='font-weight:600; margin-bottom:0.6rem;'>Confidence-Based Flagging</div>
             <div style='display:flex; gap:1.5rem; margin-bottom:0.6rem;'>
                 <div style='text-align:center;'>
-                    <div style='font-size:0.75rem; color:#888;'>Predictions flagged</div>
+                    <div style='font-size:0.75rem; color:#5f5f5f;'>Predictions flagged</div>
                     <div style='font-size:1.8rem; font-weight:700; color:{PARTIAL_COLOR};'>20.1%</div>
                 </div>
             </div>
-            <div style='font-size:0.86rem; color:#444;'>
-                Female patients flagged more frequently (25.9% vs 19.1%), suggesting greater model uncertainty for this group.
-            </div>
-            <div style='font-size:0.82rem; color:#888; margin-top:0.6rem; padding-top:0.4rem; border-top:1px solid #eee;'>
-                <strong>Public perspective:</strong> Separately, the survey found strong support for human oversight and the right to challenge AI decisions.
+            <div style='font-size:0.86rem; color:#444; line-height:1.55;'>
+                Female patients were flagged more frequently (25.9% versus 19.1%), suggesting greater model uncertainty for this group.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -720,29 +797,32 @@ with tabs[3]:
 
     recs = [
         {"title": "Collect more representative clinical data", "addresses": "Representativeness, Consistency",
-         "finding": "Dataset composition likely contributed to limitations in representativeness and consistency. Female patients represent 21.0% of the dataset vs 33.0% of real-world CHD prevalence (BHF, 2021). Under-45 patients showed 15.9% prediction instability.",
-         "recommendation": "Future healthcare AI systems should prioritise more representative clinical datasets before deployment."},
+         "finding": "Female patients make up 21.0% of the dataset against 33.0% of real-world CHD prevalence (BHF, 2021), and under-45 patients showed the highest prediction instability.",
+         "recommendation": "Prioritise more representative clinical datasets before deployment."},
         {"title": "Implement clinician override and patient challenge mechanisms", "addresses": "Correctability",
-         "finding": "Only 4 of 8 correctability criteria were satisfied. Separately, most survey respondents supported human review and clinician involvement.",
-         "recommendation": "Clinical AI systems should include clear mechanisms for clinician override, patient review requests, and accountability tracking."},
+         "finding": "Only 4 of 8 correctability criteria were satisfied, with no route for clinicians or patients to challenge a decision.",
+         "recommendation": "Add clear mechanisms for clinician override, patient review requests, and accountability tracking."},
         {"title": "Establish prediction audit trails and model version control", "addresses": "Correctability",
          "finding": "Audit trail and model version history mechanisms were not available within the assessed pipeline.",
-         "recommendation": "These mechanisms support accountability, monitoring, and retrospective review in clinical deployment."},
+         "recommendation": "Add audit trails and version control to support accountability and retrospective review."},
         {"title": "Address informed consent for retrospective data use", "addresses": "Ethicality",
-         "finding": "Consent practices for secondary ML use were not available within the dataset documentation. Separately, most survey respondents indicated patients should be informed when their data is used to train AI.",
-         "recommendation": "Future deployments should establish clear consent frameworks for the secondary use of clinical data in machine learning research."},
+         "finding": "Consent practices for secondary ML use were not documented in the dataset.",
+         "recommendation": "Establish clear consent frameworks for the secondary use of clinical data in ML research."},
         {"title": "Improve fairness communication and stakeholder involvement", "addresses": "All criteria",
-         "finding": "This dashboard is one approach to communicating fairness assessments to diverse stakeholders.",
-         "recommendation": "Future work should evaluate whether fairness dashboards and explanations are understandable and useful for clinicians, patients, and policymakers."},
+         "finding": "This dashboard is one approach to communicating fairness findings to a mixed audience.",
+         "recommendation": "Evaluate whether fairness dashboards are understandable and useful for clinicians, patients, and policymakers."},
     ]
 
-    for rec in recs:
+    for n, rec in enumerate(recs, 1):
         st.markdown(f"""
         <div class='rec-box'>
-            <div style='font-weight:600; font-size:0.95rem; margin-bottom:0.3rem;'>{rec['title']}</div>
-            <div style='font-size:0.78rem; color:{PRIMARY}; font-weight:600; margin-bottom:0.5rem;'>Addresses: {rec['addresses']}</div>
-            <div style='font-size:0.84rem; color:#555; margin-bottom:0.4rem;'><strong>Finding:</strong> {rec['finding']}</div>
-            <div style='font-size:0.86rem; color:#444; padding-top:0.4rem; border-top:1px solid #eee;'><strong>Recommendation:</strong> {rec['recommendation']}</div>
+            <div style='display:flex; align-items:center; gap:0.7rem; margin-bottom:0.5rem;'>
+                <span class='rec-num'>{n}</span>
+                <span style='font-weight:700; font-size:0.98rem;'>{rec['title']}</span>
+            </div>
+            <div style='margin-bottom:0.5rem;'><span class='rec-chip'>Addresses: {rec['addresses']}</span></div>
+            <div style='font-size:0.85rem; color:#444; line-height:1.55;'>{rec['finding']}</div>
+            <div style='font-size:0.86rem; color:{DARK}; margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid #f0e0e5;'><strong>Recommendation:</strong> {rec['recommendation']}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -758,6 +838,6 @@ with tabs[3]:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown(f"""<div style='text-align:center; padding:2rem 0 1rem; color:#aaa; font-size:0.82rem;'>
+    st.markdown(f"""<div style='text-align:center; padding:2rem 0 1rem; color:#6a6a6a; font-size:0.82rem;'>
         Procedural Fairness in Healthcare ADM · Kaylee Scarce · Newcastle University 2026 · Supervised by Dr Vlad González-Zelaya
     </div>""", unsafe_allow_html=True)
