@@ -196,19 +196,19 @@ criteria = {
     "Accuracy": {
         "purpose": "Predictions should be reliable and minimise diagnostic errors.",
         "baseline": "PASS", "mitigated": "PASS",
-        "headline": "0.904", "headline_label": "AUC-ROC",
-        "mitigated_headline": "0.840", "mitigated_headline_label": "AUC-ROC",
-        "baseline_finding": "AUC-ROC of 0.904 exceeded the 0.80 " + tt("threshold", THRESH_AUC) + ", indicating strong ability to distinguish between patients with and without heart disease. Overall accuracy was 84.2%. However, aggregate performance can hide differences between patient groups, and as shown in the Bias Suppression assessment, recall was lower for female patients.",
-        "mitigated_finding": "After fairness-aware retraining, AUC-ROC decreased to 0.840 and overall accuracy to 80.4%, both remaining above the 0.80 " + tt("threshold", THRESH_AUC) + ". This reduction was a deliberate tradeoff to improve fairness across patient groups.",
+        "headline": "0.957", "headline_label": "AUC-ROC",
+        "mitigated_headline": "0.895", "mitigated_headline_label": "AUC-ROC",
+        "baseline_finding": "AUC-ROC of 0.957 exceeded the 0.80 " + tt("threshold", THRESH_AUC) + ", indicating strong ability to distinguish between patients with and without heart disease. Overall accuracy was 89.1%. However, aggregate performance can hide differences between patient groups, and as shown in the Bias Suppression assessment, recall was lower for female patients.",
+        "mitigated_finding": "After fairness-aware retraining, AUC-ROC decreased to 0.895 while overall accuracy remained stable at 89.7%. AUC-ROC remained above the 0.80 " + tt("threshold", THRESH_AUC) + ". The reduction in discrimination was a deliberate tradeoff to improve fairness across patient groups.",
         "metrics": "Overall accuracy, AUC-ROC, precision, recall, F1-score"
     },
     "Bias Suppression": {
         "purpose": "The tool should not be less accurate for some patient groups than others.",
         "baseline": "FAIL", "mitigated": "PARTIAL",
-        "headline": "0.264 / 0.203", "headline_label": "Parity / equalised odds difference",
-        "mitigated_headline": "0.041 / 0.212", "mitigated_headline_label": "Parity / equalised odds difference",
-        "baseline_finding": "Female patients were identified with heart disease at a much lower rate (62.5%) than male patients (82.8%). Both fairness measures exceeded the " + tt("threshold", THRESH_DISPARITY) + ", with a demographic parity difference of 0.264 and an equalised odds difference of 0.203.",
-        "mitigated_finding": "After mitigation, female recall improved to 87.5% and male recall decreased to 76.8%. Demographic parity difference reduced to 0.041, now within the " + tt("threshold", THRESH_DISPARITY) + ". Equalised odds difference remained at 0.212, partly due to the limited female test set size (n=27).",
+        "headline": "0.457 / 0.235", "headline_label": "Parity / equalised odds difference",
+        "mitigated_headline": "0.380 / 0.120", "mitigated_headline_label": "Parity / equalised odds difference",
+        "baseline_finding": "Female patients were identified with heart disease at a much lower rate (70.0%) than male patients (93.5%). Both fairness measures exceeded the " + tt("threshold", THRESH_DISPARITY) + ", with a demographic parity difference of 0.457 and an equalised odds difference of 0.235.",
+        "mitigated_finding": "After mitigation, female recall improved to 90.0% while male recall was unchanged at 93.5%. Equalised odds difference reduced substantially from 0.235 to 0.120 and demographic parity difference from 0.457 to 0.380, but both remained above the " + tt("threshold", THRESH_DISPARITY) + ". The limited female test set size (n=39) constrains the precision of these estimates.",
         "metrics": "Demographic parity difference, equalised odds difference, group-level recall"
     },
     "Representativeness": {
@@ -222,11 +222,11 @@ criteria = {
     },
     "Consistency": {
         "purpose": "The tool must make stable, predictable decisions for similar patients.",
-        "baseline": "FAIL", "mitigated": "FAIL",
-        "headline": "8.7%", "headline_label": "Predictions changed",
-        "mitigated_headline": "8.7%", "mitigated_headline_label": "Predictions changed",
-        "baseline_finding": "When small, clinically realistic variations were applied to patient data, 8.7% of predictions changed, exceeding the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". Instability was highest for under-45 patients (15.9%).",
-        "mitigated_finding": "Unchanged, because consistency improvements require more representative training data so the model has stronger confidence across all patient groups.",
+        "baseline": "PASS", "mitigated": "PASS",
+        "headline": "0.0%", "headline_label": "Predictions changed",
+        "mitigated_headline": "1.1%", "mitigated_headline_label": "Predictions changed",
+        "baseline_finding": "When small, clinically realistic variations were applied to patient data, no predictions changed (0.0%), well within the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". Stability was consistent across all sex and age subgroups.",
+        "mitigated_finding": "After mitigation, 1.1% of predictions changed under the same perturbation test, still within the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". The small increase reflects the randomised ensemble produced by the mitigation algorithm rather than a single decision boundary.",
         "metrics": "Percentage of predictions that change under minor input perturbation"
     },
     "Correctability": {
@@ -235,7 +235,7 @@ criteria = {
         "headline": "3 of 7", "headline_label": "Governance criteria met",
         "mitigated_headline": "4 of 8", "mitigated_headline_label": "Governance criteria met",
         "baseline_finding": "Met 3 of 7 checklist criteria, below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ". The pipeline lacked a clinician override, a patient challenge mechanism, an audit trail, and model version history. The dashboard partially addresses this through transparent communication of predictions and uncertainty.",
-        "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence below 70% are flagged for clinician review (20.1% of test cases). This raised the count to 4 of 8 criteria, still below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ".",
+        "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence between 30% and 70% are flagged for clinician review (10.3% of test cases). This raised the count to 4 of 8 criteria, still below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ".",
         "metrics": "Proportion of correctability checklist criteria met (qualitative assessment)"
     },
     "Ethicality": {
@@ -319,9 +319,9 @@ with tabs[0]:
         st.markdown(f"""
         <div class='card' style='text-align:center; padding:2rem;'>
             <div class='kpi-label'>Fairness Criteria Met</div>
-            <div class='kpi-number'>2 of 6</div>
-            <div class='pip-row'><span style='color:{PASS_COLOR};'>\u25cf\u25cf</span><span style='color:#d9b3bd;'>\u25cb\u25cb\u25cb\u25cb</span></div>
-            <div style='font-size:0.82rem; color:#5f5f5f; margin-top:0.3rem;'>2 pass, 4 fail (baseline)</div>
+            <div class='kpi-number'>3 of 6</div>
+            <div class='pip-row'><span style='color:{PASS_COLOR};'>\u25cf\u25cf\u25cf</span><span style='color:#d9b3bd;'>\u25cb\u25cb\u25cb</span></div>
+            <div style='font-size:0.82rem; color:#5f5f5f; margin-top:0.3rem;'>3 pass, 3 fail (baseline)</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
@@ -330,12 +330,12 @@ with tabs[0]:
             <div class='kpi-label' style='margin-bottom:0.8rem;'><span class='tooltip'>Recall<span class='tooltiptext'>Recall measures the percentage of patients who actually had heart disease that the model correctly identified. It is calculated as True Positives ÷ (True Positives + False Negatives). In healthcare, high recall is critical because a missed case (false negative) means a sick patient goes undetected.</span></span> by Sex (Heart Disease Present Class)</div>
             <div style='display:flex; gap:2rem; align-items:center;'>
                 <div>
-                    <span style='font-size:2.5rem; font-weight:700; color:{FAIL_COLOR};'>62.5%</span>
+                    <span style='font-size:2.5rem; font-weight:700; color:{FAIL_COLOR};'>70.0%</span>
                     <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Female patients</div>
                 </div>
                 <div style='font-size:1.5rem; color:#ccc;'>vs</div>
                 <div>
-                    <span style='font-size:2.5rem; font-weight:700; color:{PASS_COLOR};'>82.8%</span>
+                    <span style='font-size:2.5rem; font-weight:700; color:{PASS_COLOR};'>93.5%</span>
                     <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Male patients</div>
                 </div>
             </div>
@@ -483,7 +483,7 @@ with tabs[1]:
         </div>
         <div style='font-size:0.82rem; color:#555; padding-top:0.5rem; border-top:1px solid #eee; line-height:1.5;'>
             <strong>Why:</strong> The baseline model identified heart disease in female patients at a
-            much lower rate (62.5%) than male patients (82.8%). This intervention aimed to reduce
+            much lower rate (70.0%) than male patients (93.5%). This intervention aimed to reduce
             that disparity.
         </div>
     </div>
@@ -493,8 +493,8 @@ with tabs[1]:
     st.caption("Recall measures the percentage of actual heart disease cases the tool correctly identified.")
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(name='Male', x=['Baseline model','Post-mitigation model'], y=[82.8,76.8], marker_color="#7b2d4e", text=['82.8%','76.8%'], textposition='outside', width=0.3))
-    fig.add_trace(go.Bar(name='Female', x=['Baseline model','Post-mitigation model'], y=[62.5,87.5], marker=dict(color="#e8a3b8", pattern=dict(shape="/")), text=['62.5%','87.5%'], textposition='outside', width=0.3))
+    fig.add_trace(go.Bar(name='Male', x=['Baseline model','Post-mitigation model'], y=[93.5,93.5], marker_color="#7b2d4e", text=['93.5%','93.5%'], textposition='outside', width=0.3))
+    fig.add_trace(go.Bar(name='Female', x=['Baseline model','Post-mitigation model'], y=[70.0,90.0], marker=dict(color="#e8a3b8", pattern=dict(shape="/")), text=['70.0%','90.0%'], textposition='outside', width=0.3))
     fig.add_hline(y=80, line_dash="dot", line_color="#5f5f5f", annotation_text="80% clinical threshold", annotation_position="bottom right")
     fig.update_layout(barmode='group', yaxis=dict(range=[0,105], showgrid=False, showticklabels=False), xaxis=dict(showgrid=False), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', legend=dict(orientation='h', y=1.1), margin=dict(t=20,b=20,l=0,r=120), font=dict(color=DARK, size=13), height=350)
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
@@ -502,20 +502,20 @@ with tabs[1]:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(f"""
-        <div class='card pass-card'>
-            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Demographic Parity Difference ✓ Improved</div>
-            <div style='color:{PASS_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.264 → 0.041</div>
-            <div style='font-size:0.86rem; color:#444;'>The difference in positive prediction rates between male and female patients decreased and is now within the predefined ±0.10 {tt("threshold", THRESH_DISPARITY)}.</div>
+        <div class='card partial-card'>
+            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Demographic Parity Difference ⚠ Above Threshold</div>
+            <div style='color:{PARTIAL_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.457 → 0.380</div>
+            <div style='font-size:0.86rem; color:#444;'>The difference in positive prediction rates between male and female patients decreased but remained above the predefined ±0.10 {tt("threshold", THRESH_DISPARITY)}.</div>
             <div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>Measures whether the model flags patients across groups at similar rates.</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
         st.markdown(f"""
         <div class='card partial-card'>
-            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Equalised Odds Difference ⚠ Above Threshold</div>
-            <div style='color:{PARTIAL_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.203 → 0.212</div>
-            <div style='font-size:0.86rem; color:#444;'>The difference in error rates between male and female patients remained above the ±0.10 {tt("threshold", THRESH_DISPARITY)} after mitigation.</div>
-            <div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>This may be influenced by the small number of female patients in the test set (n=27), which limits the reliability of this measure.</div>
+            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Equalised Odds Difference ⚠ Improved, Above Threshold</div>
+            <div style='color:{PARTIAL_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.235 → 0.120</div>
+            <div style='font-size:0.86rem; color:#444;'>The difference in error rates between male and female patients approximately halved after mitigation, but remained above the ±0.10 {tt("threshold", THRESH_DISPARITY)}.</div>
+            <div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>This may be influenced by the small number of female patients in the test set (n=39), which limits the reliability of this measure.</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -530,8 +530,8 @@ with tabs[1]:
         </div>
         <div style='font-size:0.82rem; font-weight:600; color:{PRIMARY}; text-transform:uppercase; margin-bottom:0.5rem;'>Intervention: Confidence-Based Flagging</div>
         <div style='font-size:0.86rem; color:#444; line-height:1.5; margin-bottom:0.6rem;'>
-            Predictions with model confidence below 70% are automatically flagged for clinician review,
-            creating an opportunity for human oversight before decisions are finalised.
+            Predictions with model confidence between 30% and 70% are automatically flagged for clinician
+            review, creating an opportunity for human oversight before decisions are finalised.
         </div>
         <div style='font-size:0.82rem; color:#555; padding-top:0.5rem; border-top:1px solid #eee; line-height:1.5;'>
             <strong>Why:</strong> The baseline pipeline met only 3 of 7 correctability criteria and lacked
@@ -542,9 +542,9 @@ with tabs[1]:
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
-    with col1: st.metric("Overall flagged", "20.1%")
-    with col2: st.metric("Male patients flagged", "19.1%")
-    with col3: st.metric("Female patients flagged", "25.9%")
+    with col1: st.metric("Overall flagged", "10.3%")
+    with col2: st.metric("Male patients flagged", "9.0%")
+    with col3: st.metric("Female patients flagged", "15.4%")
 
     st.markdown("""<div style='font-size:0.86rem; color:#555; margin-top:0.3rem;'>
         <strong>Finding:</strong> Female patients were flagged for review more frequently than male patients,
@@ -558,8 +558,10 @@ with tabs[1]:
     <div class='card' style='border-left:4px solid {PRIMARY}; background:#fff0f3;'>
         <div style='font-size:0.92rem; color:#444; line-height:1.6;'>
             The mitigation strategy improved procedural fairness by reducing disparities between
-            demographic groups and introducing a mechanism for clinician oversight. However, fairness
-            was not fully achieved, as limitations in dataset representativeness and model consistency remained.
+            demographic groups and introducing a mechanism for clinician oversight. Notably, female recall
+            improved without any reduction in male recall. However, fairness was not fully achieved, as both
+            formal fairness measures remained above threshold and limitations in dataset representativeness
+            and governance mechanisms remained.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -707,10 +709,10 @@ with tabs[3]:
 
     st.markdown("## Key Pipeline Findings")
     pipeline_rows = [
-        ("Accuracy", "AUC-ROC (0.904) exceeded the 0.80 threshold, indicating strong ability to distinguish between patients with and without heart disease. However, aggregate performance masked lower recall for female patients."),
-        ("Bias Suppression", "Bias mitigation substantially reduced disparities between male and female patients, although equalised odds remained above the predefined threshold."),
+        ("Accuracy", "AUC-ROC (0.957) exceeded the 0.80 threshold, indicating strong ability to distinguish between patients with and without heart disease. However, aggregate performance masked lower recall for female patients."),
+        ("Bias Suppression", "Bias mitigation substantially reduced disparities between male and female patients, raising female recall from 70.0% to 90.0% with no reduction in male recall, although both fairness measures remained above the predefined threshold."),
         ("Representativeness", "Female patients and younger age groups were underrepresented compared with real-world disease prevalence."),
-        ("Consistency", "Predictions changed under small, clinically realistic input perturbations, with instability highest among younger patients."),
+        ("Consistency", "Predictions remained stable under small, clinically realistic input perturbations, with instability of 0.0% at baseline and 1.1% after mitigation, both within the 5% threshold."),
         ("Correctability", "The pipeline lacked key correctability mechanisms. Confidence-based flagging was introduced to partially address this, improving criteria met from 3 of 7 to 4 of 8."),
         ("Ethicality", "Most ethical criteria were satisfied, but consent practices for secondary ML use were not documented."),
     ]
@@ -764,11 +766,11 @@ with tabs[3]:
             <div style='display:flex; gap:1.5rem; margin-bottom:0.6rem;'>
                 <div style='text-align:center;'>
                     <div style='font-size:0.75rem; color:#5f5f5f;'>Female {RECALL_TT}</div>
-                    <div style='font-size:1.8rem; font-weight:700; color:{PASS_COLOR};'>62.5% \u2192 87.5%</div>
+                    <div style='font-size:1.8rem; font-weight:700; color:{PASS_COLOR};'>70.0% \u2192 90.0%</div>
                 </div>
             </div>
             <div style='font-size:0.86rem; color:#444; line-height:1.55;'>
-                {DPD_TT} reduced from 0.264 to 0.041. {ACC_TT} decreased from 84.2% to 80.4% and AUC-ROC from 0.904 to 0.840, both remaining above threshold, a deliberate tradeoff to improve fairness.
+{DPD_TT} reduced from 0.457 to 0.380 and equalised odds difference from 0.235 to 0.120, both still above threshold. {ACC_TT} was stable at 89.1% to 89.7%, while AUC-ROC decreased from 0.957 to 0.895, remaining above threshold. Male recall was unchanged, so the gain for female patients did not come at their expense.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -779,11 +781,11 @@ with tabs[3]:
             <div style='display:flex; gap:1.5rem; margin-bottom:0.6rem;'>
                 <div style='text-align:center;'>
                     <div style='font-size:0.75rem; color:#5f5f5f;'>Predictions flagged</div>
-                    <div style='font-size:1.8rem; font-weight:700; color:{PARTIAL_COLOR};'>20.1%</div>
+                    <div style='font-size:1.8rem; font-weight:700; color:{PARTIAL_COLOR};'>10.3%</div>
                 </div>
             </div>
             <div style='font-size:0.86rem; color:#444; line-height:1.55;'>
-                Female patients were flagged more frequently (25.9% versus 19.1%), suggesting greater model uncertainty for this group.
+                Female patients were flagged more frequently (15.4% versus 9.0%), suggesting greater model uncertainty for this group.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -796,8 +798,8 @@ with tabs[3]:
     </div>""", unsafe_allow_html=True)
 
     recs = [
-        {"title": "Collect more representative clinical data", "addresses": "Representativeness, Consistency",
-         "finding": "Female patients make up 21.0% of the dataset against 33.0% of real-world CHD prevalence (BHF, 2021), and under-45 patients showed the highest prediction instability.",
+        {"title": "Collect more representative clinical data", "addresses": "Representativeness, Bias Suppression",
+         "finding": "Female patients make up 21.0% of the dataset against 33.0% of real-world CHD prevalence (BHF, 2021), and the small female test sample (n=39) limits the precision of subgroup fairness estimates.",
          "recommendation": "Prioritise more representative clinical datasets before deployment."},
         {"title": "Implement clinician override and patient challenge mechanisms", "addresses": "Correctability",
          "finding": "Only 4 of 8 correctability criteria were satisfied, with no route for clinicians or patients to challenge a decision.",
