@@ -1,6 +1,10 @@
+from pathlib import Path
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+
+DATA_DIR = Path(__file__).parent.parent / "data"
 
 st.set_page_config(page_title="Procedural Fairness in Healthcare AI", page_icon="🏥", layout="wide")
 
@@ -164,7 +168,7 @@ st.markdown(f"""
 
 @st.cache_data
 def load_survey():
-    df = pd.read_excel("disssurvey (Responses).xlsx")
+    df = pd.read_excel(DATA_DIR / "disssurvey (Responses).xlsx")
     df.columns = ['timestamp','age','gender','technical','tool_choice','correctability','fairness_type','responsibility','consent_use','human_involvement','data_consent','trust']
     return df
 
