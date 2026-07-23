@@ -57,6 +57,8 @@ st.markdown(f"""
     .spec-strip {{ display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.4rem 0 0.2rem; }}
     .spec-item {{ background: #fbeef1; border-radius: 8px; padding: 0.5rem 0.9rem; font-size: 0.82rem; color: {DARK}; flex: 1 1 auto; min-width: 140px; }}
     .spec-item strong {{ display: block; font-size: 0.72rem; color: {RULE_LABEL}; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.15rem; }}
+    .spec-callout {{ background: {FAIL_BG}; border-left: 4px solid {FAIL_COLOR}; border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.85rem; color: {DARK}; margin-top: 0.6rem; }}
+    .spec-callout strong {{ color: {FAIL_COLOR}; }}
     .flow-row {{ display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.4rem; margin: 0.6rem 0; }}
     .flow-step {{ background: white; border: 1px solid #f0d9df; border-left: 4px solid {PRIMARY}; border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.82rem; flex: 1 1 0; min-width: 120px; text-align: center; display: flex; align-items: center; justify-content: center; }}
     .flow-arrow {{ display: flex; align-items: center; color: {PRIMARY}; font-size: 1.2rem; font-weight: 700; }}
@@ -204,12 +206,13 @@ def tt(label, explanation):
         f"</span>"
     )
 
-THRESH_AUC = "Minimum AUC-ROC of 0.80. Values above this level are commonly interpreted as showing good ability to distinguish between two outcomes (Mandrekar, 2010)."
-THRESH_DISPARITY = "A disparity threshold of \u00b10.10 was applied to both demographic parity difference and equalised odds difference, defined by the researcher as an operational benchmark for this study. Formal definitions of fairness remain contested and no single threshold is universally agreed. Equalised odds was prioritised because differences in false positive and false negative rates relate more directly to potential clinical harm, particularly the risk of missed diagnoses."
-THRESH_REPR = "A representation ratio of 0.80 was used to identify underrepresented groups, adapted from the four-fifths principle commonly referenced in fairness evaluation. Dataset demographics were compared against real-world coronary heart disease prevalence (British Heart Foundation, 2021)."
-THRESH_CONSISTENCY = "A maximum instability rate of 5% was applied, defined by the researcher as a conservative operational benchmark, since no established clinical standard exists for prediction stability testing of this type. Stability was assessed by introducing clinically realistic Gaussian noise to input features and measuring the resulting change in predictions."
-THRESH_CHECKLIST_CORR = "An 80% checklist completion threshold was defined by the researcher as an operational benchmark for sufficient coverage of correctability criteria, indicating that the majority of required governance and accountability mechanisms were present while allowing for minor gaps."
-THRESH_CHECKLIST_ETH = "An 80% checklist completion threshold was defined by the researcher as an operational benchmark for sufficient coverage of ethicality criteria, indicating that the majority of required ethical and legal standards were met while allowing for minor gaps."
+THRESH_AUC = "AUC-ROC of at least 0.80, commonly interpreted as showing good ability to distinguish between two outcomes (Mandrekar, 2010)."
+THRESH_DISPARITY = "A disparity of no more than \u00b10.10 on both fairness measures, defined by the researcher as an operational benchmark since no single threshold is universally agreed in algorithmic fairness research."
+THRESH_REPR = "A representation ratio of at least 0.80, adapted from the four-fifths principle used in fairness evaluation, comparing dataset composition against real-world CHD prevalence (British Heart Foundation, 2021)."
+THRESH_CONSISTENCY = "An instability rate of no more than 5%, defined by the researcher as a conservative operational benchmark since no established clinical standard exists for this type of test."
+THRESH_CHECKLIST_CORR = "At least 80% of correctability checklist criteria met, an operational benchmark defined by the researcher for sufficient governance and accountability coverage."
+THRESH_CHECKLIST_ETH = "At least 80% of ethicality checklist criteria met, an operational benchmark defined by the researcher for sufficient ethical and legal coverage."
+RECALL_EXPLANATION = "The percentage of patients who actually had heart disease that the model correctly identified (True Positives \u00f7 (True Positives + False Negatives)). High recall matters in healthcare because a missed case (false negative) means a sick patient goes undetected."
 
 criteria = {
     "Accuracy": {
@@ -273,7 +276,7 @@ def badge(result):
     icon = {"PASS": "\u2713", "FAIL": "\u2715", "PARTIAL": "\u26a0"}[result]
     return f"<span class='badge {cls}-badge'>{icon} {result}</span>"
 
-tabs = st.tabs(["Overview", "Fairness Assessment", "Survey", "Discussion"])
+tabs = st.tabs(["Overview", "Methodology", "Fairness Assessment", "Survey", "Discussion"])
 
 # ══════════════════════════════════════════════════════════════
 # TAB 1: OVERVIEW
@@ -287,42 +290,16 @@ with tabs[0]:
         including predicting a patient's risk of heart disease. However, accuracy alone is not
         enough to make an AI system trustworthy. For healthcare AI to be responsible, it must
         also be fair across different groups of patients, transparent, and accountable when
-        mistakes occur.<br><br>
-        This dashboard evaluates a heart disease prediction model against six principles of fair
-        decision-making, and explores whether its performance aligns with what the public expects
-        from medical AI.
+        mistakes occur. This dashboard evaluates a heart disease prediction model against six
+        principles of fair decision-making, and explores whether its performance aligns with
+        what the public expects from medical AI.
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class='method-box'>
         <strong>What am I looking at?</strong> Results from the pipeline evaluation and a
-        public survey (n=325), presented across four tabs.
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<div class='rule-label' style='margin-top:1.2rem;'>The Model</div>", unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class='spec-strip'>
-        <div class='spec-item'><strong>Algorithm</strong>Logistic regression classifier</div>
-        <div class='spec-item'><strong>Data</strong>UCI Heart Disease, 918 records</div>
-        <div class='spec-item'><strong>Predicts</strong>Presence of heart disease</div>
-        <div class='spec-item'><strong>Known limitation</strong>Only 21% of records are female</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<div class='rule-label' style='margin-top:1rem;'>How the Evaluation Works</div>", unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class='flow-row'>
-        <div class='flow-step'>Patient data</div>
-        <div class='flow-arrow'>\u2192</div>
-        <div class='flow-step'>Model trained</div>
-        <div class='flow-arrow'>\u2192</div>
-        <div class='flow-step'>Tested against 6 fairness criteria</div>
-        <div class='flow-arrow'>\u2192</div>
-        <div class='flow-step'>2 mitigations applied</div>
-        <div class='flow-arrow'>\u2192</div>
-        <div class='flow-step'>Results shown here</div>
+        public survey (n=325), presented across five tabs.
     </div>
     """, unsafe_allow_html=True)
 
@@ -340,24 +317,43 @@ with tabs[0]:
     with col2:
         st.markdown(f"""
         <div class='card' style='padding:1.5rem 2rem;'>
-            <div class='kpi-label' style='margin-bottom:0.8rem;'>{tt("Recall", "Recall measures the percentage of patients who actually had heart disease that the model correctly identified. It is calculated as True Positives ÷ (True Positives + False Negatives). In healthcare, high recall is critical because a missed case (false negative) means a sick patient goes undetected.")} by Sex (Heart Disease Present Class)</div>
-            <div style='display:flex; gap:2rem; align-items:center;'>
+            <div class='kpi-label' style='margin-bottom:0.8rem;'>{tt("Recall", RECALL_EXPLANATION)} by Sex (Heart Disease Present Class)</div>
+            <div style='display:flex; gap:2rem; align-items:flex-end;'>
                 <div>
                     <span style='font-size:2.5rem; font-weight:700; color:{FAIL_COLOR};'>70.0%</span>
                     <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Female patients (n=39)</div>
+                    <div style='font-size:0.85rem; font-weight:700; color:{PASS_COLOR}; margin-top:0.3rem;'>→ 90.0% after mitigation</div>
                 </div>
                 <div style='font-size:1.5rem; color:#ccc;'>vs</div>
                 <div>
                     <span style='font-size:2.5rem; font-weight:700; color:{PASS_COLOR};'>93.5%</span>
                     <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Male patients (n=145)</div>
+                    <div style='font-size:0.85rem; color:#666; margin-top:0.3rem;'>Unchanged after mitigation</div>
                 </div>
             </div>
             <div style='margin-top:1rem; font-size:0.88rem; color:#555; padding-top:0.8rem; border-top:1px solid #eee;'>
-                The model identified heart disease less reliably in female patients.
-                Their underrepresentation in the training data (21.0% of records) may have contributed to this disparity.
+                The model identified heart disease less reliably in female patients, likely linked to
+                their underrepresentation in the training data (21.0% of records). Fairness-aware
+                mitigation narrowed this gap without reducing male recall — full detail in the
+                Fairness Assessment tab.
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+    st.markdown("<div class='rule-label'>The Model</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='spec-strip'>
+        <div class='spec-item'><strong>Algorithm</strong>Logistic regression classifier</div>
+        <div class='spec-item'><strong>Data</strong>UCI Heart Disease, 918 records</div>
+        <div class='spec-item'><strong>Predicts</strong>Presence of heart disease</div>
+    </div>
+    <div class='spec-callout'><strong>Known limitation:</strong> only 21% of records are female — reflected in the recall gap above.</div>
+    """, unsafe_allow_html=True)
+    st.markdown(f"""<div style='font-size:0.85rem; color:#666; margin-top:0.8rem;'>
+        For the model's design rationale, how the six criteria are tested, and how each mitigation
+        strategy works, see the <strong>Methodology</strong> tab.
+    </div>""", unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("## The Six Principles of Fair Decision-Making")
@@ -380,19 +376,122 @@ with tabs[0]:
             """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════
-# TAB 2: PROCEDURAL FAIRNESS ASSESSMENT
+# TAB 2: METHODOLOGY
 # ══════════════════════════════════════════════════════════════
 with tabs[1]:
+    st.markdown("<h1>How This Was Tested</h1>", unsafe_allow_html=True)
+    st.markdown("<div class='subtitle'>The data, model, and two-stage evaluation behind the fairness assessment</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='rule-label' style='margin-top:1.2rem;'>The Model</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='spec-strip'>
+        <div class='spec-item'><strong>Algorithm</strong>Logistic regression classifier</div>
+        <div class='spec-item'><strong>Data</strong>UCI Heart Disease, 918 records</div>
+        <div class='spec-item'><strong>Predicts</strong>Presence of heart disease</div>
+        <div class='spec-item'><strong>Train / test split</strong>734 / 184, stratified 80/20</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='method-box' style='margin-top:0.8rem;'>
+        Logistic regression was chosen for its interpretability and transparency, which matter directly
+        for two of the six fairness criteria: a clinician or patient can see how a prediction was reached.
+        Sex and age were kept as model inputs rather than removed, because excluding them would not
+        necessarily stop the model learning demographic patterns through other correlated clinical
+        variables — keeping them in means any such pattern can be measured directly, as it is in the
+        Bias Suppression criterion.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+    st.markdown("<div class='rule-label'>The Pipeline</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='flow-row'>
+        <div class='flow-step'><div><strong>918 patient records</strong><br><span style='font-size:0.72rem; color:#666;'>UCI Heart Disease dataset</span></div></div>
+        <div class='flow-arrow'>→</div>
+        <div class='flow-step'><div><strong>734 train / 184 test</strong><br><span style='font-size:0.72rem; color:#666;'>stratified 80/20 split</span></div></div>
+        <div class='flow-arrow'>→</div>
+        <div class='flow-step'><div><strong>6 criteria tested</strong><br><span style='font-size:0.72rem; color:#666;'>against pre-set thresholds</span></div></div>
+        <div class='flow-arrow'>→</div>
+        <div class='flow-step'><div><strong>2 mitigations applied</strong><br><span style='font-size:0.72rem; color:#666;'>training + flagging</span></div></div>
+        <div class='flow-arrow'>→</div>
+        <div class='flow-step'><div><strong>Re-tested on all 6</strong><br><span style='font-size:0.72rem; color:#666;'>results in the next tab</span></div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+    st.markdown("<div class='rule-label'>The Six Criteria: What They Test and How</div>", unsafe_allow_html=True)
+    method_rows = "".join(f"""
+        <tr style='border-bottom:1px solid #f0e0e5;'>
+            <td style='padding:0.6rem 0.7rem; font-weight:600; color:{DARK}; white-space:nowrap; vertical-align:top;'>{name}</td>
+            <td style='padding:0.6rem 0.7rem; color:#444; vertical-align:top;'>{data['purpose']}</td>
+            <td style='padding:0.6rem 0.7rem; color:#444; vertical-align:top;'>{data['metrics']}</td>
+        </tr>""" for name, data in criteria.items())
+    st.markdown(f"""
+    <div class='card'>
+        <div style='overflow-x:auto;'>
+        <table style='width:100%; border-collapse:collapse; font-size:0.85rem;'>
+            <thead>
+                <tr style='border-bottom:2px solid #e0c3cc;'>
+                    <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>Criterion</th>
+                    <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>What It Means</th>
+                    <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>How It's Measured</th>
+                </tr>
+            </thead>
+            <tbody>{method_rows}</tbody>
+        </table>
+        </div>
+        <div style='font-size:0.8rem; color:#666; margin-top:0.8rem; padding-top:0.6rem; border-top:1px solid #eee;'>
+            For Bias Suppression, equalised odds was prioritised over demographic parity when judging
+            pass/fail, because differences in false positive and false negative rates relate more
+            directly to potential clinical harm, particularly the risk of missed diagnoses.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+    st.markdown("<div class='rule-label'>The Two Mitigation Strategies</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class='method-box'>
+        <strong>1. Fairness-aware training (addresses Bias Suppression)</strong><br><br>
+        An ExponentiatedGradient algorithm was applied during model training, constrained by Fairlearn's
+        EqualizedOdds criterion. In practice, this repeatedly re-weighted individual patient records
+        during training so the model's error rates moved closer together across male and female
+        patients, rather than optimising for overall accuracy alone. A constraint tolerance of 0.01 was
+        used, allowing the optimiser to balance fairness against predictive performance rather than
+        forcing an exact match between groups. The same imputation, scaling, and logistic regression
+        steps used in the baseline model were kept unchanged, so any difference in the result reflects
+        the mitigation itself rather than a different underlying model.
+    </div>
+    <div class='method-box'>
+        <strong>2. Confidence-based flagging (addresses Correctability)</strong><br><br>
+        The baseline model already outputs a predicted probability for each patient, not just a
+        yes/no prediction. Confidence-based flagging uses that probability directly: any prediction
+        between 30% and 70% — where the model is closest to guessing — is automatically flagged for
+        clinician review, rather than returned as a routine result. This does not change what the
+        model predicts; it adds a signal for where a human should look more closely before a
+        prediction is acted on.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""<div style='font-size:0.85rem; color:#666; margin-top:0.5rem;'>
+        Results of this evaluation, before and after both interventions, are presented in the
+        <strong>Fairness Assessment</strong> tab.
+    </div>""", unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════
+# TAB 3: PROCEDURAL FAIRNESS ASSESSMENT
+# ══════════════════════════════════════════════════════════════
+with tabs[2]:
     st.markdown("<h1>Procedural Fairness Assessment</h1>", unsafe_allow_html=True)
     st.markdown("<div class='subtitle'>Detailed evaluation of each criterion with technical results</div>", unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class='card' style='background:#fff0f3; border-left:4px solid {PRIMARY}; margin-bottom:1.5rem;'>
         <strong>Framework</strong><br><br>
-        This assessment evaluates the model against six procedural fairness criteria based on
-        Leventhal's (1980) procedural justice framework, adapted for healthcare automated
-        decision-making following Jabagi et al. (2025). Technical criteria were assessed using
-        quantitative metrics; sociotechnical criteria were evaluated using structured qualitative checklists.
+        Six procedural fairness criteria, based on Leventhal's (1980) procedural justice framework
+        adapted for healthcare by Jabagi et al. (2025), each assessed at baseline and after
+        mitigation. See the <strong>Methodology</strong> tab for the model, the criteria in full,
+        and how each mitigation strategy works.
     </div>
     """, unsafe_allow_html=True)
 
@@ -415,7 +514,8 @@ with tabs[1]:
 
     st.markdown(f"""
     <div class='card' style='margin-bottom:1.5rem;'>
-        <div class='rule-label' style='margin-bottom:0.6rem;'>At a Glance — All Six Criteria</div>
+        <div class='rule-label' style='margin-bottom:0.4rem;'>At a Glance — All Six Criteria</div>
+        <div style='margin-bottom:0.5rem;'><span style='letter-spacing:0.15rem; font-size:1.1rem;'><span style='color:{PASS_COLOR};'>●●●</span><span style='color:#d9b3bd;'>○○○</span></span> <span style='font-size:0.78rem; color:#666;'>3 of 6 pass at baseline</span></div>
         <div style='font-size:0.82rem; color:#666; margin-bottom:0.8rem;'>Every criterion, baseline and after mitigation, in one view. Use the toggle below for the full detail behind each result.</div>
         <div style='overflow-x:auto;'>
         <table style='width:100%; border-collapse:collapse; font-size:0.85rem;'>
@@ -458,7 +558,8 @@ with tabs[1]:
             <div style='margin-top:0.7rem; font-size:0.88rem; color:#444; line-height:1.55;'>{finding}</div>
         </div>
         """, unsafe_allow_html=True)
-        with st.expander(f"Purpose and metrics: {name}"):
+        expander_label = f"Purpose, metrics and checklist: {name}" if name in ("Correctability", "Ethicality") else f"Purpose and metrics: {name}"
+        with st.expander(expander_label):
             st.markdown(f"**Purpose:** {data['purpose']}")
             st.markdown(f"**Metrics:** {data['metrics']}")
             if name == "Correctability":
@@ -519,7 +620,6 @@ with tabs[1]:
 
     # ── 1. BIAS SUPPRESSION MITIGATION ──
     st.markdown("### 1. Bias Suppression Mitigation")
-    EG_EO_TT = tt("ExponentiatedGradient algorithm with an EqualizedOdds constraint", "A fairness-aware training method that repeatedly adjusts the weight given to different training examples so the model treats groups more equally, while trying to keep overall predictive performance as high as possible.")
     st.markdown(f"""
     <div class='card' style='border-left:4px solid {PASS_COLOR};'>
         <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;'>
@@ -527,14 +627,10 @@ with tabs[1]:
             <span class='badge partial-badge'>PARTIAL</span>
         </div>
         <div style='font-size:0.82rem; font-weight:600; color:{PRIMARY}; text-transform:uppercase; margin-bottom:0.5rem;'>Intervention: Fairness-Aware Training</div>
-        <div style='font-size:0.86rem; color:#444; line-height:1.5; margin-bottom:0.6rem;'>
-            An {EG_EO_TT} was applied during
-            model training to reduce differences in performance between demographic groups.
-        </div>
         <div style='font-size:0.82rem; color:#555; padding-top:0.5rem; border-top:1px solid #eee; line-height:1.5;'>
             <strong>Why:</strong> The baseline model identified heart disease in female patients at a
             much lower rate (70.0%) than male patients (93.5%). This intervention aimed to reduce
-            that disparity.
+            that disparity. See the <strong>Methodology</strong> tab for how the training method works.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -601,14 +697,10 @@ with tabs[1]:
             <span class='badge partial-badge'>PARTIAL</span>
         </div>
         <div style='font-size:0.82rem; font-weight:600; color:{PRIMARY}; text-transform:uppercase; margin-bottom:0.5rem;'>Intervention: Confidence-Based Flagging</div>
-        <div style='font-size:0.86rem; color:#444; line-height:1.5; margin-bottom:0.6rem;'>
-            Predictions with model confidence between 30% and 70% are automatically flagged for clinician
-            review, creating an opportunity for human oversight before decisions are finalised.
-        </div>
         <div style='font-size:0.82rem; color:#555; padding-top:0.5rem; border-top:1px solid #eee; line-height:1.5;'>
             <strong>Why:</strong> The baseline pipeline met only 3 of 7 correctability criteria and lacked
             mechanisms for human review of uncertain predictions. This intervention partially addresses
-            that gap (now 4 of 8 criteria met).
+            that gap (now 4 of 8 criteria met). See the <strong>Methodology</strong> tab for how flagging works.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -645,9 +737,9 @@ with tabs[1]:
     """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════
-# TAB 3: PUBLIC SURVEY
+# TAB 4: PUBLIC SURVEY
 # ══════════════════════════════════════════════════════════════
-with tabs[2]:
+with tabs[3]:
     st.markdown("<h1>Public Survey Results</h1>", unsafe_allow_html=True)
     st.markdown("""<div style='font-size:0.95rem; color:#555; margin-top:0.3rem; margin-bottom:1rem;'>
         This survey explored public perceptions of fairness in healthcare AI. Responses were
@@ -726,16 +818,12 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     """, unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-    st.markdown("## Additional Context: Trust in AI")
+    st.markdown("<div class='rule-label' style='margin-top:0.5rem;'>Additional Context: Trust in AI</div>", unsafe_allow_html=True)
     st.markdown(f"""
-    <div class='tier-section'>
-        <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:center;'>
-            <div><div class='survey-hero'>{trust_pct}%</div></div>
-            <div>
-                <div class='hero-desc'>reported some level of trust in healthcare AI but believed human oversight should always remain.</div>
-                <div style='font-size:0.78rem; color:#5f5f5f; margin-top:0.4rem; font-style:italic;'>This finding provides context on public expectations of AI reliability and oversight but does not directly measure accuracy as a fairness criterion.</div>
-            </div>
-        </div>
+    <div class='card' style='padding:0.9rem 1.2rem;'>
+        <span style='font-size:1.4rem; font-weight:700; color:{DARK};'>{trust_pct}%</span>
+        <span style='font-size:0.85rem; color:#555;'> reported some level of trust in healthcare AI but believed human oversight should always remain.</span>
+        <div style='font-size:0.76rem; color:#888; margin-top:0.3rem; font-style:italic;'>Context only — this does not directly measure accuracy as a fairness criterion and is not one of the six evaluated criteria.</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -769,9 +857,9 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 # ══════════════════════════════════════════════════════════════
-# TAB 4: DISCUSSION AND RECOMMENDATIONS
+# TAB 5: DISCUSSION AND RECOMMENDATIONS
 # ══════════════════════════════════════════════════════════════
-with tabs[3]:
+with tabs[4]:
     st.markdown("<h1>Discussion and Recommendations</h1>", unsafe_allow_html=True)
     st.markdown("<div class='subtitle'>Integrating technical findings and public expectations to identify priorities for responsible deployment</div>", unsafe_allow_html=True)
 
@@ -815,9 +903,9 @@ with tabs[3]:
         ("Trust in AI (Contextual)", f"{trust_pct}% reported some level of trust in AI but believed human oversight should remain. Accuracy was not directly assessed."),
     ]
     survey_html = f"""
-    <div style='background:#3d6b7a; color:white; padding:0.5rem 0.8rem; border-radius:8px 8px 0 0; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;'>Evidence source 2: Public survey</div>
-    <table style='width:100%; border-collapse:collapse; font-size:0.88rem; border:1px solid #cfe0e5;'>
-        <thead><tr style='border-bottom:2px solid #b8d4db; background:#eef5f7;'>
+    <div style='background:{RULE_LABEL}; color:white; padding:0.5rem 0.8rem; border-radius:8px 8px 0 0; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;'>Evidence source 2: Public survey</div>
+    <table style='width:100%; border-collapse:collapse; font-size:0.88rem; border:1px solid #f0d9df;'>
+        <thead><tr style='border-bottom:2px solid #e0c3cc; background:#fbeef1;'>
             <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK}; width:200px;'>Theme</th>
             <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK};'>Finding</th>
         </tr></thead>
@@ -826,47 +914,21 @@ with tabs[3]:
     st.markdown(survey_html, unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-    st.markdown("## Impact of Mitigation Strategies")
-    st.markdown("""<div style='font-size:0.88rem; color:#555; margin-bottom:1rem;'>
-        This section summarises the outcomes of the two mitigation strategies evaluated in the pipeline.
-        These are technical results only.
-    </div>""", unsafe_allow_html=True)
-
-    RECALL_TT = tt("Recall", "The percentage of patients who actually had heart disease that the model correctly identified. Higher is better, because a lower recall means more patients with the disease were missed.")
-    DPD_TT = tt("Demographic parity difference", "Measures whether the model flags patients for heart disease at similar rates across groups. A value closer to 0 means the model treats groups more equally.")
-    ACC_TT = tt("Overall accuracy", "The percentage of all predictions, both positive and negative, that the model got correct across all patients combined.")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f"""
-        <div class='card' style='border-left:4px solid {PASS_COLOR};'>
-            <div style='font-weight:600; margin-bottom:0.6rem;'>Bias Mitigation</div>
-            <div style='display:flex; gap:1.5rem; margin-bottom:0.6rem;'>
-                <div style='text-align:center;'>
-                    <div style='font-size:0.75rem; color:#5f5f5f;'>Female {RECALL_TT}</div>
-                    <div style='font-size:1.8rem; font-weight:700; color:{PASS_COLOR};'>70.0% \u2192 90.0%</div>
-                </div>
-            </div>
-            <div style='font-size:0.86rem; color:#444; line-height:1.55;'>
-{DPD_TT} reduced from 0.457 to 0.380 and equalised odds difference from 0.235 to 0.120, both still above threshold. {ACC_TT} was stable at 89.1% to 89.7%, while AUC-ROC decreased from 0.957 to 0.895, remaining above threshold. Male recall was unchanged, so the gain for female patients did not come at their expense.
-            </div>
+    st.markdown("## Bringing the Evidence Together")
+    st.markdown(f"""
+    <div class='card' style='border-left:4px solid {PRIMARY};'>
+        <div style='font-size:0.9rem; color:#444; line-height:1.6;'>
+            Mitigation substantially narrowed the recall gap between male and female patients
+            (70.0% to 90.0% for female patients, with male recall unchanged at 93.5%), and moved two
+            failing criteria \u2014 Bias Suppression and Correctability \u2014 to Partial, without fully
+            resolving either. The public survey points in the same direction from a different angle:
+            a majority of respondents expect equal performance across patient groups and continued
+            human oversight regardless of how accurate the tool is. Together, the two sources suggest
+            the technical improvements made here are a step toward what the public expects, not a
+            substitute for it.
         </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"""
-        <div class='card' style='border-left:4px solid {PARTIAL_COLOR};'>
-            <div style='font-weight:600; margin-bottom:0.6rem;'>Confidence-Based Flagging</div>
-            <div style='display:flex; gap:1.5rem; margin-bottom:0.6rem;'>
-                <div style='text-align:center;'>
-                    <div style='font-size:0.75rem; color:#5f5f5f;'>Predictions flagged</div>
-                    <div style='font-size:1.8rem; font-weight:700; color:{PARTIAL_COLOR};'>10.3%</div>
-                </div>
-            </div>
-            <div style='font-size:0.86rem; color:#444; line-height:1.55;'>
-                Female patients were flagged more frequently (15.4% versus 9.0%), suggesting greater model uncertainty for this group.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("## Priorities for Responsible Deployment")
