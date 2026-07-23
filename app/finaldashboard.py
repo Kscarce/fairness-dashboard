@@ -250,7 +250,7 @@ criteria = {
         "baseline": "PASS", "mitigated": "PASS",
         "headline": "0.0%", "headline_label": "Predictions changed",
         "mitigated_headline": "1.1%", "mitigated_headline_label": "Predictions changed",
-        "baseline_finding": "Small realistic changes were introduced to patient data to test whether predictions were stable. No predictions changed (0.0%), remaining well below the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". Repeating the test across " + tt("multiple random variations", SEED_ROBUSTNESS_EXPLANATION) + " produced similarly stable results, suggesting the model's decisions were not sensitive to minor input changes.",
+        "baseline_finding": "Small, realistic changes to patient data produced no change in predictions (0.0%), well below the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". Repeating the test across " + tt("multiple random variations", SEED_ROBUSTNESS_EXPLANATION) + " confirmed the model's decisions were not sensitive to minor input changes.",
         "mitigated_finding": "After mitigation, 1.1% of predictions changed under the same perturbation test, still within the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". The small increase reflects the randomised ensemble produced by the mitigation algorithm rather than a single decision boundary.",
         "metrics": "Percentage of predictions that change under minor input perturbation"
     },
@@ -787,51 +787,65 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
 
     st.markdown("""<div style='color:#5f5f5f; font-size:0.78rem; text-align:center; padding:0.5rem 0;'>Age: 41–60 (29.2%) · Under 25 (28.3%) · Over 60 (22.8%) · 25–40 (19.7%)</div>""", unsafe_allow_html=True)
 
+    import textwrap
+
+    def survey_chart(col_name, title, main_options):
+        counts = survey[col_name].value_counts()
+        filtered = counts[counts.index.isin(main_options)]
+        other = counts[~counts.index.isin(main_options)].sum()
+        if other > 0: filtered['Other responses'] = other
+        pcts = (filtered / total_responses * 100).round(0).astype(int)
+        wrapped_labels = ['<br>'.join(textwrap.wrap(str(lbl), 40)) for lbl in pcts.index]
+        fig = go.Figure(go.Bar(x=pcts.values, y=wrapped_labels, orientation='h', marker_color=PRIMARY, text=[f"{v}%" for v in pcts.values], textposition='outside'))
+        fig.update_layout(title=dict(text=title, font=dict(size=13)), xaxis=dict(showgrid=False, showticklabels=False, range=[0,118]), yaxis=dict(showgrid=False, autorange='reversed'), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', margin=dict(t=38,b=10,l=0,r=55), height=max(170, len(filtered)*52), font=dict(color=DARK, size=11))
+        return fig
+
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("## Strongest Public Priorities: Human Oversight and Transparency")
 
-    st.markdown(f"""
-    <div class='tier-section'>
-        <div class='rule-label'>Correctability</div>
-        <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;'>
-            <div><div class='survey-hero'>{challenge_pct}%</div><div class='hero-desc'>chose the option supporting patients' right to request a human review of an AI decision, even at cost or delay</div></div>
-            <div><div class='survey-hero'>{human_pct}%</div><div class='hero-desc'>chose the option supporting human doctor involvement in medical decisions, regardless of AI accuracy</div></div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='rule-label'>Correctability</div>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(survey_chart('correctability', 'Should patients have the right to request human review?',
+            ['Yes — patients should always have the right to challenge a decision about their health',
+             'Only if the patient has a specific reason to doubt the result',
+             'No — if the tool is correct most of the time, human reviews are an unnecessary cost']),
+            use_container_width=True, config={'displayModeBar': False})
+    with col2:
+        st.plotly_chart(survey_chart('human_involvement', 'Should a human doctor always be involved?',
+            ['Yes — human involvement is essential regardless of accuracy',
+             'No — accuracy should be the priority', "I'm not sure"]),
+            use_container_width=True, config={'displayModeBar': False})
 
-    st.markdown(f"""
-    <div class='tier-section'>
-        <div class='rule-label'>Ethicality</div>
-        <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;'>
-            <div><div class='survey-hero'>{consent_pct}%</div><div class='hero-desc'>chose the option supporting patients being informed when an AI tool is used in their care</div></div>
-            <div><div class='survey-hero'>{data_consent_pct}%</div><div class='hero-desc'>chose the option supporting patients being informed when their records are used to train AI, even if anonymised</div></div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='rule-label' style='margin-top:1rem;'>Ethicality</div>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(survey_chart('consent_use', 'Should patients be told when AI is used in their care?',
+            ['Yes — patients have a right to know',
+             "No — it doesn't matter how the decision is made as long as it's accurate",
+             'Only if the patient asks']),
+            use_container_width=True, config={'displayModeBar': False})
+    with col2:
+        st.plotly_chart(survey_chart('data_consent', 'Should patients be informed when their data trains AI?',
+            ['Yes — patients should always be informed how their data is used',
+             'Only if there is a chance they could be identified from the data',
+             'No — anonymised data can be used freely for medical research']),
+            use_container_width=True, config={'displayModeBar': False})
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("## Moderate Agreement: Equal Performance Across Groups")
-    st.markdown(f"""
-    <div class='tier-section'>
-        <div class='rule-label'>Bias Suppression / Representativeness</div>
-        <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:center;'>
-            <div><div class='survey-hero'>{tool_a_pct}%</div><div class='hero-desc'>chose equal performance across all patient groups over higher overall accuracy</div></div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='rule-label'>Bias Suppression / Representativeness</div>", unsafe_allow_html=True)
+    st.plotly_chart(survey_chart('tool_choice', 'Which AI tool should the hospital use?',
+        ['Tool A — equal performance across groups', 'Tool B — higher overall accuracy', "I'm not sure"]),
+        use_container_width=True, config={'displayModeBar': False})
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("## Mixed Views: Consistency")
-    st.markdown(f"""
-    <div class='tier-section'>
-        <div style='display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;'>
-            <div><div class='survey-hero'>{same_rules_pct}%</div><div class='hero-desc'>favoured applying the same rules to every patient regardless of outcome</div></div>
-            <div><div class='survey-hero'>{equal_outcomes_pct}%</div><div class='hero-desc'>prioritised equal accuracy across all patient groups over uniform rules</div></div>
-        </div>
-        <div style='font-size:0.82rem; color:#666; margin-top:1rem; padding-top:0.8rem; border-top:1px solid #eee;'>The majority leaned toward outcome-based fairness rather than procedural consistency.</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.plotly_chart(survey_chart('fairness_type', 'When it comes to fairness in medical AI, which is more important?',
+        ['Making sure the AI is equally accurate for all groups of patients',
+         'Using the same rules for every patient, no matter who they are', 'I am not sure']),
+        use_container_width=True, config={'displayModeBar': False})
+    st.markdown("<div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>The majority leaned toward outcome-based fairness rather than procedural consistency.</div>", unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("<div class='rule-label' style='margin-top:0.5rem;'>Additional Context: Trust in AI</div>", unsafe_allow_html=True)
@@ -849,28 +863,13 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     </div>""", unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-    with st.expander("See all survey questions and full response distributions"):
-        questions = [
-            ('tool_choice', 'Which AI tool should the hospital use?', ['Tool A — equal performance across groups', 'Tool B — higher overall accuracy', "I'm not sure"]),
-            ('correctability', 'Should patients have the right to request human review?', ['Yes — patients should always have the right to challenge a decision about their health', 'Only if the patient has a specific reason to doubt the result', 'No — if the tool is correct most of the time, human reviews are an unnecessary cost']),
-            ('fairness_type', 'When it comes to fairness in medical AI, which is more important?', ['Making sure the AI is equally accurate for all groups of patients', 'Using the same rules for every patient, no matter who they are', 'I am not sure']),
+    with st.expander("See remaining survey questions: responsibility and trust in AI"):
+        remaining_questions = [
             ('responsibility', 'Who should be held responsible when AI makes a wrong diagnosis?', ['All of the above', 'No one — AI errors are unavoidable', 'The doctor who relied on it', "I'm not sure", 'The hospital that used the tool', 'The company that built the tool']),
-            ('consent_use', 'Should patients be told when AI is used in their care?', ['Yes — patients have a right to know', "No — it doesn't matter how the decision is made as long as it's accurate", 'Only if the patient asks']),
-            ('human_involvement', 'Should a human doctor always be involved?', ['Yes — human involvement is essential regardless of accuracy', 'No — accuracy should be the priority', "I'm not sure"]),
-            ('data_consent', 'Should patients be informed when their data trains AI?', ['Yes — patients should always be informed how their data is used', 'Only if there is a chance they could be identified from the data', 'No — anonymised data can be used freely for medical research']),
             ('trust', 'How much do you trust AI in healthcare?', ['I trust them somewhat — but there should always be human oversight', "I don't trust them — medical decisions should be made by humans only", "I'm not sure", 'I trust them fully — AI is more objective than humans']),
         ]
-        import textwrap
-        for col_name, title, main_options in questions:
-            counts = survey[col_name].value_counts()
-            filtered = counts[counts.index.isin(main_options)]
-            other = counts[~counts.index.isin(main_options)].sum()
-            if other > 0: filtered['Other responses'] = other
-            pcts = (filtered / total_responses * 100).round(0).astype(int)
-            wrapped_labels = ['<br>'.join(textwrap.wrap(str(lbl), 40)) for lbl in pcts.index]
-            fig = go.Figure(go.Bar(x=pcts.values, y=wrapped_labels, orientation='h', marker_color=PRIMARY, text=[f"{v}%" for v in pcts.values], textposition='outside'))
-            fig.update_layout(title=dict(text=title, font=dict(size=13)), xaxis=dict(showgrid=False, showticklabels=False, range=[0,118]), yaxis=dict(showgrid=False, autorange='reversed'), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', margin=dict(t=38,b=10,l=0,r=55), height=max(170, len(filtered)*52), font=dict(color=DARK, size=11))
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        for col_name, title, main_options in remaining_questions:
+            st.plotly_chart(survey_chart(col_name, title, main_options), use_container_width=True, config={'displayModeBar': False})
 
 # ══════════════════════════════════════════════════════════════
 # TAB 5: DISCUSSION AND RECOMMENDATIONS
