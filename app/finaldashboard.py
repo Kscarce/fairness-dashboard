@@ -35,10 +35,10 @@ st.markdown(f"""
     .partial-card {{ border-left: 4px solid {PARTIAL_COLOR}; background: {PARTIAL_BG}; }}
     .rule-name {{ font-weight: 700; font-size: 1.05rem; }}
     .rule-desc {{ font-size: 0.88rem; color: #444; margin-top: 0.3rem; }}
-    .badge {{ display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }}
+    .badge {{ display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; }}
     .pass-badge {{ background: {PASS_COLOR}; color: white; }}
     .fail-badge {{ background: {FAIL_COLOR}; color: white; }}
-    .partial-badge {{ background: {PARTIAL_COLOR}; color: white; }}
+    .partial-badge {{ background: #6b5003; color: white; }}
     .divider {{ border: none; border-top: 1px solid #eee; margin: 1.5rem 0; }}
     .survey-stat {{ background: white; border-radius: 10px; padding: 1rem 1.2rem; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }}
     .survey-pct {{ font-size: 2.2rem; font-weight: 700; color: {PRIMARY}; }}
@@ -213,6 +213,9 @@ THRESH_CONSISTENCY = "An instability rate of no more than 5%, defined by the res
 THRESH_CHECKLIST_CORR = "At least 80% of correctability checklist criteria met, an operational benchmark defined by the researcher for sufficient governance and accountability coverage."
 THRESH_CHECKLIST_ETH = "At least 80% of ethicality checklist criteria met, an operational benchmark defined by the researcher for sufficient ethical and legal coverage."
 RECALL_EXPLANATION = "The percentage of patients who actually had heart disease that the model correctly identified (True Positives \u00f7 (True Positives + False Negatives)). High recall matters in healthcare because a missed case (false negative) means a sick patient goes undetected."
+CONFIDENCE_BAND_EXPLANATION = "A very low score means the model is confident the patient does not have heart disease, and a very high score means it is confident they do. Scores in the middle are where the model is least certain, closest to a coin flip, so those are the ones a clinician should look at more closely."
+FAIRNESS_TRAINING_EXPLANATION = "An ExponentiatedGradient algorithm was applied, constrained by Fairlearn's EqualizedOdds criterion, with a tolerance of 0.01 to balance fairness against predictive performance rather than forcing an exact match between groups. The same imputation, scaling, and logistic regression steps used in the baseline model were kept unchanged, so any difference in the result reflects the mitigation itself rather than a different underlying model."
+SEED_ROBUSTNESS_EXPLANATION = "Repeating the test across 20 random seeds gave a mean instability of 0.03% (range 0.00% to 0.54%), confirming the result is not an artefact of a single perturbation draw. Only 2 of 184 test cases sat close to the decision boundary, which explains the high stability."
 
 criteria = {
     "Accuracy": {
@@ -227,11 +230,11 @@ criteria = {
     "Bias Suppression": {
         "purpose": "The tool should not be less accurate for some patient groups than others.",
         "baseline": "FAIL", "mitigated": "PARTIAL",
-        "headline": "0.457 / 0.235", "headline_label": "Parity / equalised odds difference",
-        "mitigated_headline": "0.380 / 0.120", "mitigated_headline_label": "Parity / equalised odds difference",
+        "headline": "0.235 / 0.457", "headline_label": "Equalised odds / parity difference",
+        "mitigated_headline": "0.120 / 0.380", "mitigated_headline_label": "Equalised odds / parity difference",
         "baseline_finding": "Female patients were identified with heart disease at a much lower rate (70.0%) than male patients (93.5%). Both fairness measures exceeded the " + tt("threshold", THRESH_DISPARITY) + ", with a demographic parity difference of 0.457 and an equalised odds difference of 0.235.",
-        "mitigated_finding": "After mitigation, female recall improved to 90.0% while male recall was unchanged at 93.5%. Equalised odds difference reduced substantially from 0.235 to 0.120 and demographic parity difference from 0.457 to 0.380, but both remained above the " + tt("threshold", THRESH_DISPARITY) + ". The limited female test set size (n=39) constrains the precision of these estimates.",
-        "metrics": "Demographic parity difference, equalised odds difference, group-level recall"
+        "mitigated_finding": "Partial improvement. Female recall rose from 70.0% to 90.0%, while male recall was unchanged at 93.5%. Both fairness measures improved, equalised odds difference from 0.235 to 0.120 and demographic parity difference from 0.457 to 0.380, but neither reached the ±0.10 acceptance " + tt("threshold", THRESH_DISPARITY) + ". The criterion is therefore classified as partial rather than passed. The small female test sample (n=39) limits the precision of these estimates.",
+        "metrics": "Equalised odds difference, demographic parity difference, group-level recall"
     },
     "Representativeness": {
         "purpose": "Training data must reflect the full range of patients the tool will be used on.",
@@ -247,7 +250,7 @@ criteria = {
         "baseline": "PASS", "mitigated": "PASS",
         "headline": "0.0%", "headline_label": "Predictions changed",
         "mitigated_headline": "1.1%", "mitigated_headline_label": "Predictions changed",
-        "baseline_finding": "When small, clinically realistic variations were applied to patient data, no predictions changed (0.0%), well within the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". Stability was consistent across all sex and age subgroups. Repeating the test across 20 random seeds gave a mean instability of 0.03% (range 0.00% to 0.54%), confirming the result is not an artefact of a single perturbation draw. Only 2 of 184 test cases sat close to the decision boundary, which explains the high stability.",
+        "baseline_finding": "Small realistic changes were introduced to patient data to test whether predictions were stable. No predictions changed (0.0%), remaining well below the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". Repeating the test across " + tt("multiple random variations", SEED_ROBUSTNESS_EXPLANATION) + " produced similarly stable results, suggesting the model's decisions were not sensitive to minor input changes.",
         "mitigated_finding": "After mitigation, 1.1% of predictions changed under the same perturbation test, still within the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". The small increase reflects the randomised ensemble produced by the mitigation algorithm rather than a single decision boundary.",
         "metrics": "Percentage of predictions that change under minor input perturbation"
     },
@@ -257,7 +260,7 @@ criteria = {
         "headline": "3 of 7", "headline_label": "Governance criteria met",
         "mitigated_headline": "4 of 8", "mitigated_headline_label": "Governance criteria met",
         "baseline_finding": "Met 3 of 7 checklist criteria, below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ". The pipeline lacked a clinician override, a patient challenge mechanism, an audit trail, and model version history. The dashboard partially addresses this through transparent communication of predictions and uncertainty.",
-        "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence between 30% and 70% are flagged for clinician review (10.3% of test cases). A new checklist item, “Low confidence predictions flagged for human review,” was added to capture this intervention, raising both the number of criteria met and the total from 3 of 7 to 4 of 8. Because the total also increased, the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + " became harder to reach rather than easier, and the criterion is not met under either version of the checklist.",
+        "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence between " + tt("30% and 70%", CONFIDENCE_BAND_EXPLANATION) + " are flagged for clinician review (10.3% of test cases). A new checklist item, “Low confidence predictions flagged for human review,” was added to capture this intervention, raising both the number of criteria met and the total from 3 of 7 to 4 of 8. Because the total also increased, the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + " became harder to reach rather than easier, and the criterion is not met under either version of the checklist.",
         "metrics": "Proportion of correctability checklist criteria met (qualitative assessment)"
     },
     "Ethicality": {
@@ -290,16 +293,16 @@ with tabs[0]:
         including predicting a patient's risk of heart disease. However, accuracy alone is not
         enough to make an AI system trustworthy. For healthcare AI to be responsible, it must
         also be fair across different groups of patients, transparent, and accountable when
-        mistakes occur. This dashboard evaluates a heart disease prediction model against six
-        principles of fair decision-making, and explores whether its performance aligns with
-        what the public expects from medical AI.
+        mistakes occur.
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class='method-box'>
-        <strong>What am I looking at?</strong> Results from the pipeline evaluation and a
-        public survey (n=325), presented across five tabs.
+        <strong>What am I looking at?</strong> Six rules for fair decision-making were defined
+        specifically for healthcare. A model was built to predict heart disease. That model was
+        tested against the six rules, and a public survey asked people what they expect from
+        fairness in medical AI. The results are shown across five tabs.
     </div>
     """, unsafe_allow_html=True)
 
@@ -318,24 +321,20 @@ with tabs[0]:
         st.markdown(f"""
         <div class='card' style='padding:1.5rem 2rem;'>
             <div class='kpi-label' style='margin-bottom:0.8rem;'>{tt("Recall", RECALL_EXPLANATION)} by Sex (Heart Disease Present Class)</div>
-            <div style='display:flex; gap:2rem; align-items:flex-end;'>
+            <div style='display:flex; gap:2rem; align-items:center;'>
                 <div>
                     <span style='font-size:2.5rem; font-weight:700; color:{FAIL_COLOR};'>70.0%</span>
                     <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Female patients (n=39)</div>
-                    <div style='font-size:0.85rem; font-weight:700; color:{PASS_COLOR}; margin-top:0.3rem;'>→ 90.0% after mitigation</div>
                 </div>
                 <div style='font-size:1.5rem; color:#ccc;'>vs</div>
                 <div>
                     <span style='font-size:2.5rem; font-weight:700; color:{PASS_COLOR};'>93.5%</span>
                     <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Male patients (n=145)</div>
-                    <div style='font-size:0.85rem; color:#666; margin-top:0.3rem;'>Unchanged after mitigation</div>
                 </div>
             </div>
             <div style='margin-top:1rem; font-size:0.88rem; color:#555; padding-top:0.8rem; border-top:1px solid #eee;'>
                 The model identified heart disease less reliably in female patients, likely linked to
-                their underrepresentation in the training data (21.0% of records). Fairness-aware
-                mitigation narrowed this gap without reducing male recall — full detail in the
-                Fairness Assessment tab.
+                their 21.0% share of the training data.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -348,7 +347,7 @@ with tabs[0]:
         <div class='spec-item'><strong>Data</strong>UCI Heart Disease, 918 records</div>
         <div class='spec-item'><strong>Predicts</strong>Presence of heart disease</div>
     </div>
-    <div class='spec-callout'><strong>Known limitation:</strong> only 21% of records are female — reflected in the recall gap above.</div>
+    <div class='spec-callout'><strong>Known limitation:</strong> only 21% of records are female.</div>
     """, unsafe_allow_html=True)
     st.markdown(f"""<div style='font-size:0.85rem; color:#666; margin-top:0.8rem;'>
         For the model's design rationale, how the six criteria are tested, and how each mitigation
@@ -393,12 +392,12 @@ with tabs[1]:
     """, unsafe_allow_html=True)
     st.markdown(f"""
     <div class='method-box' style='margin-top:0.8rem;'>
-        Logistic regression was chosen for its interpretability and transparency, which matter directly
-        for two of the six fairness criteria: a clinician or patient can see how a prediction was reached.
-        Sex and age were kept as model inputs rather than removed, because excluding them would not
-        necessarily stop the model learning demographic patterns through other correlated clinical
-        variables — keeping them in means any such pattern can be measured directly, as it is in the
-        Bias Suppression criterion.
+        <strong>Why logistic regression?</strong> It shows how it reached its answer. That matters for
+        the criteria that require reviewable decisions.<br><br>
+        <strong>Why keep sex and age as inputs?</strong> Removing them would not stop the model
+        picking up those patterns indirectly, through other related clinical measurements. Keeping
+        them in means any such pattern can be measured directly, as it is in the Bias Suppression
+        criterion.
     </div>
     """, unsafe_allow_html=True)
 
@@ -453,23 +452,16 @@ with tabs[1]:
     st.markdown(f"""
     <div class='method-box'>
         <strong>1. Fairness-aware training (addresses Bias Suppression)</strong><br><br>
-        An ExponentiatedGradient algorithm was applied during model training, constrained by Fairlearn's
-        EqualizedOdds criterion. In practice, this repeatedly re-weighted individual patient records
-        during training so the model's error rates moved closer together across male and female
-        patients, rather than optimising for overall accuracy alone. A constraint tolerance of 0.01 was
-        used, allowing the optimiser to balance fairness against predictive performance rather than
-        forcing an exact match between groups. The same imputation, scaling, and logistic regression
-        steps used in the baseline model were kept unchanged, so any difference in the result reflects
-        the mitigation itself rather than a different underlying model.
+        A {tt("fairness-aware training method", FAIRNESS_TRAINING_EXPLANATION)} re-weighted patient
+        records during training, so the model's error rates moved closer together across male and
+        female patients, rather than optimising for overall accuracy alone.
     </div>
     <div class='method-box'>
         <strong>2. Confidence-based flagging (addresses Correctability)</strong><br><br>
-        The baseline model already outputs a predicted probability for each patient, not just a
-        yes/no prediction. Confidence-based flagging uses that probability directly: any prediction
-        between 30% and 70% — where the model is closest to guessing — is automatically flagged for
-        clinician review, rather than returned as a routine result. This does not change what the
-        model predicts; it adds a signal for where a human should look more closely before a
-        prediction is acted on.
+        The model already gives a confidence score for each prediction, not just a yes or no answer.
+        Predictions between {tt("30% and 70%", CONFIDENCE_BAND_EXPLANATION)} are automatically flagged
+        for clinician review, rather than returned as a routine result. This does not change what the
+        model predicts. It adds a signal for where a human should look more closely.
     </div>
     """, unsafe_allow_html=True)
 
@@ -490,8 +482,7 @@ with tabs[2]:
         <strong>Framework</strong><br><br>
         Six procedural fairness criteria, based on Leventhal's (1980) procedural justice framework
         adapted for healthcare by Jabagi et al. (2025), each assessed at baseline and after
-        mitigation. See the <strong>Methodology</strong> tab for the model, the criteria in full,
-        and how each mitigation strategy works.
+        mitigation.
     </div>
     """, unsafe_allow_html=True)
 
@@ -500,13 +491,13 @@ with tabs[2]:
             <td style='padding:0.6rem 0.7rem; font-weight:600; color:{DARK}; white-space:nowrap;'>{name}</td>
             <td style='padding:0.6rem 0.7rem;'>
                 <div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'>
-                    <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK};'>{data['headline']}</span>
+                    <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK}; display:inline-block; min-width:105px;'>{data['headline']}</span>
                     {badge(data['baseline'])}
                 </div>
             </td>
             <td style='padding:0.6rem 0.7rem;'>
                 <div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'>
-                    <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK};'>{data['mitigated_headline']}</span>
+                    <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK}; display:inline-block; min-width:105px;'>{data['mitigated_headline']}</span>
                     {badge(data['mitigated'])}
                 </div>
             </td>
@@ -514,7 +505,7 @@ with tabs[2]:
 
     st.markdown(f"""
     <div class='card' style='margin-bottom:1.5rem;'>
-        <div class='rule-label' style='margin-bottom:0.4rem;'>At a Glance — All Six Criteria</div>
+        <div class='rule-label' style='margin-bottom:0.4rem;'>At a Glance: All Six Criteria</div>
         <div style='margin-bottom:0.5rem;'><span style='letter-spacing:0.15rem; font-size:1.1rem;'><span style='color:{PASS_COLOR};'>●●●</span><span style='color:#d9b3bd;'>○○○</span></span> <span style='font-size:0.78rem; color:#666;'>3 of 6 pass at baseline</span></div>
         <div style='font-size:0.82rem; color:#666; margin-bottom:0.8rem;'>Every criterion, baseline and after mitigation, in one view. Use the toggle below for the full detail behind each result.</div>
         <div style='overflow-x:auto;'>
@@ -671,19 +662,19 @@ with tabs[2]:
     with col1:
         st.markdown(f"""
         <div class='card partial-card'>
-            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Demographic Parity Difference ⚠ Above Threshold</div>
-            <div style='color:{PARTIAL_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.457 → 0.380</div>
-            <div style='font-size:0.86rem; color:#444;'>The difference in positive prediction rates between male and female patients decreased but remained above the predefined ±0.10 {tt("threshold", THRESH_DISPARITY)}.</div>
-            <div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>Measures whether the model flags patients across groups at similar rates.</div>
+            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Equalised Odds Difference ⚠ Improved, Above Threshold</div>
+            <div style='color:{PARTIAL_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.235 → 0.120</div>
+            <div style='font-size:0.86rem; color:#444;'>The difference in error rates between male and female patients approximately halved after mitigation, but remained above the ±0.10 {tt("threshold", THRESH_DISPARITY)}.</div>
+            <div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>This may be influenced by the small number of female patients in the test set (n=39), which limits the reliability of this measure.</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
         st.markdown(f"""
         <div class='card partial-card'>
-            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Equalised Odds Difference ⚠ Improved, Above Threshold</div>
-            <div style='color:{PARTIAL_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.235 → 0.120</div>
-            <div style='font-size:0.86rem; color:#444;'>The difference in error rates between male and female patients approximately halved after mitigation, but remained above the ±0.10 {tt("threshold", THRESH_DISPARITY)}.</div>
-            <div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>This may be influenced by the small number of female patients in the test set (n=39), which limits the reliability of this measure.</div>
+            <div style='font-size:0.85rem; font-weight:600; color:#555; text-transform:uppercase; margin-bottom:0.2rem;'>Demographic Parity Difference ⚠ Above Threshold</div>
+            <div style='color:{PARTIAL_COLOR}; font-size:2rem; font-weight:700; line-height:1.2; margin:0.4rem 0;'>0.457 → 0.380</div>
+            <div style='font-size:0.86rem; color:#444;'>The difference in positive prediction rates between male and female patients decreased but remained above the predefined ±0.10 {tt("threshold", THRESH_DISPARITY)}.</div>
+            <div style='font-size:0.82rem; color:#666; margin-top:0.4rem;'>Measures whether the model flags patients across groups at similar rates.</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -716,9 +707,9 @@ with tabs[2]:
 
     st.markdown("""<div style='font-size:0.86rem; color:#555; margin-top:0.3rem;'>
         <strong>Finding:</strong> Female patients were flagged for review nearly twice as often as male
-        patients — the same disparity seen in the recall gap, surfacing here through a separate mechanism
-        (model confidence rather than classification outcome). This may be related to differences in
-        training data representation.
+        patients. This is the same disparity seen in the recall gap, surfacing here through a separate
+        mechanism (model confidence rather than classification outcome). This may be related to
+        differences in training data representation.
     </div>""", unsafe_allow_html=True)
 
     # ── OVERALL OUTCOME ──
@@ -823,7 +814,7 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     <div class='card' style='padding:0.9rem 1.2rem;'>
         <span style='font-size:1.4rem; font-weight:700; color:{DARK};'>{trust_pct}%</span>
         <span style='font-size:0.85rem; color:#555;'> reported some level of trust in healthcare AI but believed human oversight should always remain.</span>
-        <div style='font-size:0.76rem; color:#888; margin-top:0.3rem; font-style:italic;'>Context only — this does not directly measure accuracy as a fairness criterion and is not one of the six evaluated criteria.</div>
+        <div style='font-size:0.76rem; color:#888; margin-top:0.3rem; font-style:italic;'>Context only: this does not directly measure accuracy as a fairness criterion and is not one of the six evaluated criteria.</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -865,11 +856,10 @@ with tabs[4]:
 
     st.markdown(f"""
     <div class='card' style='background:#fff0f3; border-left:4px solid {PRIMARY}; margin-bottom:1.5rem;'>
-        This tab presents findings from two independent sources of evidence. The pipeline evaluates
-        the technical and procedural fairness of the model, while the public survey explores what
-        people expect from fairness in healthcare AI. These are kept separate throughout, because
-        they measure different things and one does not validate the other. They are brought together
-        only in the final recommendations, where both help identify priorities for responsible deployment.
+        This tab draws on two independent sources: the pipeline, which evaluates the model's technical
+        and procedural fairness, and the public survey, which explores what people expect from fairness
+        in healthcare AI. They are kept separate, since one does not validate the other, and are only
+        brought together in the final recommendations.
     </div>
     """, unsafe_allow_html=True)
 
@@ -878,7 +868,7 @@ with tabs[4]:
         ("Accuracy", "AUC-ROC (0.957) exceeded the 0.80 threshold, indicating strong ability to distinguish between patients with and without heart disease. However, aggregate performance masked lower recall for female patients."),
         ("Bias Suppression", "Bias mitigation substantially reduced disparities between male and female patients, raising female recall from 70.0% to 90.0% with no reduction in male recall, although both fairness measures remained above the predefined threshold."),
         ("Representativeness", "Female patients and younger age groups were underrepresented compared with real-world disease prevalence."),
-        ("Consistency", "Predictions remained stable under small, clinically realistic input perturbations, with instability of 0.0% at baseline and 1.1% after mitigation, both within the 5% threshold. A 20-seed repeat gave a mean of 0.03%, confirming stability was not seed-dependent."),
+        ("Consistency", "Predictions remained stable under small, clinically realistic input perturbations, with instability of 0.0% at baseline and 1.1% after mitigation, both within the 5% threshold."),
         ("Correctability", "The pipeline lacked key correctability mechanisms. Confidence-based flagging was introduced to partially address this, improving criteria met from 3 of 7 to 4 of 8."),
         ("Ethicality", "Most ethical criteria were satisfied, but consent practices for secondary ML use were not documented."),
     ]
@@ -920,7 +910,7 @@ with tabs[4]:
         <div style='font-size:0.9rem; color:#444; line-height:1.6;'>
             Mitigation substantially narrowed the recall gap between male and female patients
             (70.0% to 90.0% for female patients, with male recall unchanged at 93.5%), and moved two
-            failing criteria \u2014 Bias Suppression and Correctability \u2014 to Partial, without fully
+            failing criteria, Bias Suppression and Correctability, to Partial, without fully
             resolving either. The public survey points in the same direction from a different angle:
             a majority of respondents expect equal performance across patient groups and continued
             human oversight regardless of how accurate the tool is. Together, the two sources suggest
