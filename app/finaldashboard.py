@@ -1,3 +1,4 @@
+import itertools
 from pathlib import Path
 
 import streamlit as st
@@ -63,12 +64,17 @@ st.markdown(f"""
     .survey-hero {{ font-size: 2.2rem; font-weight: 700; color: {DARK}; line-height: 1.1; }}
     .rec-num {{ display:inline-flex; align-items:center; justify-content:center; width:1.6rem; height:1.6rem; border-radius:50%; background:{PRIMARY}; color:white !important; font-size:0.85rem; font-weight:700; flex-shrink:0; }}
     .rec-chip {{ display:inline-block; background:#fbeef1; color:{RULE_LABEL} !important; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; padding:0.15rem 0.6rem; border-radius:12px; }}
-    .tooltip {{ position: relative; display: inline-block; cursor: help; border-bottom: 1px dotted #888; }}
+    .tooltip {{ position: relative; display: inline-block; }}
+    .tooltip-toggle {{ position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }}
+    .tooltip-trigger {{ cursor: help; border-bottom: 1px dotted #888; outline: none; }}
+    .tooltip-trigger:focus-visible {{ outline: 2px solid {PRIMARY}; outline-offset: 2px; border-radius: 2px; }}
     .tooltip .tooltiptext {{ visibility: hidden; width: 320px; background-color: #333; color: #fff;
         text-align: left; border-radius: 6px; padding: 8px 12px; position: absolute; z-index: 1;
         bottom: 125%; left: 50%; margin-left: -160px; font-size: 0.78rem; line-height: 1.4;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2); }}
-    .tooltip:hover .tooltiptext {{ visibility: visible; }}
+    .tooltip-trigger:hover ~ .tooltiptext,
+    .tooltip-trigger:focus ~ .tooltiptext,
+    .tooltip-toggle:checked ~ .tooltiptext {{ visibility: visible; }}
 
     /* ── THEME OVERRIDES: prevent dark mode from breaking colors ── */
     .stApp {{ background-color: {BG} !important; }}
@@ -186,13 +192,22 @@ non_technical_pct = round((survey['technical'] == "No, I work or study in anothe
 female_pct = round((survey['gender'] == 'Female').sum() / total_responses * 100)
 
 # ── Centralised threshold provenance (single source of truth) ──
+_tooltip_ids = itertools.count(1)
+
 def tt(label, explanation):
-    return f"<span class='tooltip'>{label}<span class='tooltiptext'>{explanation}</span></span>"
+    tid = f"tt-{next(_tooltip_ids)}"
+    return (
+        f"<span class='tooltip'>"
+        f"<input type='checkbox' class='tooltip-toggle' id='{tid}'>"
+        f"<label for='{tid}' class='tooltip-trigger' tabindex='0'>{label}</label>"
+        f"<span class='tooltiptext'>{explanation}</span>"
+        f"</span>"
+    )
 
 THRESH_AUC = "Minimum AUC-ROC of 0.80. Values above this level are commonly interpreted as showing good ability to distinguish between two outcomes (Mandrekar, 2010)."
-THRESH_DISPARITY = "A disparity threshold of \u00b10.10 was applied to both demographic parity difference and equalised odds difference, consistent with widely adopted conventions in algorithmic fairness research. Formal definitions of fairness remain contested and no single threshold is universally accepted (Corbett-Davies and Goel, 2018). Equalised odds was prioritised because differences in false positive and false negative rates relate more directly to potential clinical harm, particularly the risk of missed diagnoses."
+THRESH_DISPARITY = "A disparity threshold of \u00b10.10 was applied to both demographic parity difference and equalised odds difference, defined by the researcher as an operational benchmark for this study. Formal definitions of fairness remain contested and no single threshold is universally agreed. Equalised odds was prioritised because differences in false positive and false negative rates relate more directly to potential clinical harm, particularly the risk of missed diagnoses."
 THRESH_REPR = "A representation ratio of 0.80 was used to identify underrepresented groups, adapted from the four-fifths principle commonly referenced in fairness evaluation. Dataset demographics were compared against real-world coronary heart disease prevalence (British Heart Foundation, 2021)."
-THRESH_CONSISTENCY = "A maximum instability rate of 5% was applied. Stability was assessed by introducing clinically realistic Gaussian noise to input features and measuring the resulting change in predictions (Odom et al., 2022). The 5% level was set as a conservative benchmark, since higher instability would undermine clinician trust in a clinical decision support tool."
+THRESH_CONSISTENCY = "A maximum instability rate of 5% was applied, defined by the researcher as a conservative operational benchmark, since no established clinical standard exists for prediction stability testing of this type. Stability was assessed by introducing clinically realistic Gaussian noise to input features and measuring the resulting change in predictions."
 THRESH_CHECKLIST_CORR = "An 80% checklist completion threshold was defined by the researcher as an operational benchmark for sufficient coverage of correctability criteria, indicating that the majority of required governance and accountability mechanisms were present while allowing for minor gaps."
 THRESH_CHECKLIST_ETH = "An 80% checklist completion threshold was defined by the researcher as an operational benchmark for sufficient coverage of ethicality criteria, indicating that the majority of required ethical and legal standards were met while allowing for minor gaps."
 
@@ -239,7 +254,7 @@ criteria = {
         "headline": "3 of 7", "headline_label": "Governance criteria met",
         "mitigated_headline": "4 of 8", "mitigated_headline_label": "Governance criteria met",
         "baseline_finding": "Met 3 of 7 checklist criteria, below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ". The pipeline lacked a clinician override, a patient challenge mechanism, an audit trail, and model version history. The dashboard partially addresses this through transparent communication of predictions and uncertainty.",
-        "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence between 30% and 70% are flagged for clinician review (10.3% of test cases). This raised the count to 4 of 8 criteria, still below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ".",
+        "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence between 30% and 70% are flagged for clinician review (10.3% of test cases). A new checklist item, “Low confidence predictions flagged for human review,” was added to capture this intervention, raising both the number of criteria met and the total from 3 of 7 to 4 of 8. Because the total also increased, the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + " became harder to reach rather than easier, and the criterion is not met under either version of the checklist.",
         "metrics": "Proportion of correctability checklist criteria met (qualitative assessment)"
     },
     "Ethicality": {
@@ -281,12 +296,6 @@ with tabs[0]:
 
     st.markdown(f"""
     <div class='method-box'>
-        <strong>About This Dashboard</strong><br><br>
-        <strong>What is this?</strong> A fairness assessment of a heart disease prediction tool,
-        evaluating whether it meets six procedural fairness criteria.<br><br>
-        <strong>What was evaluated?</strong> A machine learning model assessed against six criteria
-        based on Leventhal's (1980) procedural justice framework, adapted for healthcare following
-        Jabagi et al. (2025).<br><br>
         <strong>What am I looking at?</strong> Results from the pipeline evaluation and a
         public survey (n=325), presented across four tabs.
     </div>
@@ -331,16 +340,16 @@ with tabs[0]:
     with col2:
         st.markdown(f"""
         <div class='card' style='padding:1.5rem 2rem;'>
-            <div class='kpi-label' style='margin-bottom:0.8rem;'><span class='tooltip'>Recall<span class='tooltiptext'>Recall measures the percentage of patients who actually had heart disease that the model correctly identified. It is calculated as True Positives ÷ (True Positives + False Negatives). In healthcare, high recall is critical because a missed case (false negative) means a sick patient goes undetected.</span></span> by Sex (Heart Disease Present Class)</div>
+            <div class='kpi-label' style='margin-bottom:0.8rem;'>{tt("Recall", "Recall measures the percentage of patients who actually had heart disease that the model correctly identified. It is calculated as True Positives ÷ (True Positives + False Negatives). In healthcare, high recall is critical because a missed case (false negative) means a sick patient goes undetected.")} by Sex (Heart Disease Present Class)</div>
             <div style='display:flex; gap:2rem; align-items:center;'>
                 <div>
                     <span style='font-size:2.5rem; font-weight:700; color:{FAIL_COLOR};'>70.0%</span>
-                    <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Female patients</div>
+                    <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Female patients (n=39)</div>
                 </div>
                 <div style='font-size:1.5rem; color:#ccc;'>vs</div>
                 <div>
                     <span style='font-size:2.5rem; font-weight:700; color:{PASS_COLOR};'>93.5%</span>
-                    <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Male patients</div>
+                    <div style='font-size:0.85rem; color:#666; margin-top:0.2rem;'>Male patients (n=145)</div>
                 </div>
             </div>
             <div style='margin-top:1rem; font-size:0.88rem; color:#555; padding-top:0.8rem; border-top:1px solid #eee;'>
@@ -384,6 +393,42 @@ with tabs[1]:
         Leventhal's (1980) procedural justice framework, adapted for healthcare automated
         decision-making following Jabagi et al. (2025). Technical criteria were assessed using
         quantitative metrics; sociotechnical criteria were evaluated using structured qualitative checklists.
+    </div>
+    """, unsafe_allow_html=True)
+
+    scorecard_rows = "".join(f"""
+        <tr style='border-bottom:1px solid #f0e0e5;'>
+            <td style='padding:0.6rem 0.7rem; font-weight:600; color:{DARK}; white-space:nowrap;'>{name}</td>
+            <td style='padding:0.6rem 0.7rem;'>
+                <div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'>
+                    <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK};'>{data['headline']}</span>
+                    {badge(data['baseline'])}
+                </div>
+            </td>
+            <td style='padding:0.6rem 0.7rem;'>
+                <div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'>
+                    <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK};'>{data['mitigated_headline']}</span>
+                    {badge(data['mitigated'])}
+                </div>
+            </td>
+        </tr>""" for name, data in criteria.items())
+
+    st.markdown(f"""
+    <div class='card' style='margin-bottom:1.5rem;'>
+        <div class='rule-label' style='margin-bottom:0.6rem;'>At a Glance — All Six Criteria</div>
+        <div style='font-size:0.82rem; color:#666; margin-bottom:0.8rem;'>Every criterion, baseline and after mitigation, in one view. Use the toggle below for the full detail behind each result.</div>
+        <div style='overflow-x:auto;'>
+        <table style='width:100%; border-collapse:collapse; font-size:0.85rem;'>
+            <thead>
+                <tr style='border-bottom:2px solid #e0c3cc;'>
+                    <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>Criterion</th>
+                    <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>Baseline</th>
+                    <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>Mitigated</th>
+                </tr>
+            </thead>
+            <tbody>{scorecard_rows}</tbody>
+        </table>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -474,6 +519,7 @@ with tabs[1]:
 
     # ── 1. BIAS SUPPRESSION MITIGATION ──
     st.markdown("### 1. Bias Suppression Mitigation")
+    EG_EO_TT = tt("ExponentiatedGradient algorithm with an EqualizedOdds constraint", "A fairness-aware training method that repeatedly adjusts the weight given to different training examples so the model treats groups more equally, while trying to keep overall predictive performance as high as possible.")
     st.markdown(f"""
     <div class='card' style='border-left:4px solid {PASS_COLOR};'>
         <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;'>
@@ -482,7 +528,7 @@ with tabs[1]:
         </div>
         <div style='font-size:0.82rem; font-weight:600; color:{PRIMARY}; text-transform:uppercase; margin-bottom:0.5rem;'>Intervention: Fairness-Aware Training</div>
         <div style='font-size:0.86rem; color:#444; line-height:1.5; margin-bottom:0.6rem;'>
-            An ExponentiatedGradient algorithm with an EqualizedOdds constraint was applied during
+            An {EG_EO_TT} was applied during
             model training to reduce differences in performance between demographic groups.
         </div>
         <div style='font-size:0.82rem; color:#555; padding-top:0.5rem; border-top:1px solid #eee; line-height:1.5;'>
@@ -500,8 +546,30 @@ with tabs[1]:
     fig.add_trace(go.Bar(name='Male', x=['Baseline model','Post-mitigation model'], y=[93.5,93.5], marker_color="#7b2d4e", text=['93.5%','93.5%'], textposition='outside', width=0.3))
     fig.add_trace(go.Bar(name='Female', x=['Baseline model','Post-mitigation model'], y=[70.0,90.0], marker=dict(color="#e8a3b8", pattern=dict(shape="/")), text=['70.0%','90.0%'], textposition='outside', width=0.3))
     fig.add_hline(y=80, line_dash="dot", line_color="#5f5f5f", annotation_text="80% clinical threshold", annotation_position="bottom right")
-    fig.update_layout(barmode='group', yaxis=dict(range=[0,105], showgrid=False, showticklabels=False), xaxis=dict(showgrid=False), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', legend=dict(orientation='h', y=1.1), margin=dict(t=20,b=20,l=0,r=120), font=dict(color=DARK, size=13), height=350)
+    fig.add_annotation(text="Female n=39 · Male n=145", xref="paper", yref="paper", x=0.5, y=-0.16, xanchor="center", showarrow=False, font=dict(size=10, color="#888"))
+    fig.update_layout(barmode='group', yaxis=dict(range=[0,105], showgrid=False, showticklabels=False), xaxis=dict(showgrid=False), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', legend=dict(orientation='h', y=1.1), margin=dict(t=20,b=45,l=0,r=120), font=dict(color=DARK, size=13), height=370)
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
+    st.markdown("#### Distance to the ±0.10 Fairness Threshold")
+    st.caption("Both measures moved toward the acceptable range after mitigation, but neither crossed it.")
+
+    gauge = go.Figure()
+    gauge.add_shape(type="rect", x0=0, x1=0.10, y0=-0.5, y1=1.5, fillcolor=PASS_BG, line=dict(width=0), layer="below")
+    gauge.add_vline(x=0.10, line_dash="dot", line_color=PARTIAL_COLOR)
+    gauge.add_annotation(x=0.10, y=1.42, text="±0.10 threshold", showarrow=False, font=dict(size=10, color=PARTIAL_COLOR), yanchor="bottom")
+
+    gauge_rows = [
+        ("Equalised Odds Difference", 0.235, 0.120),
+        ("Demographic Parity Difference", 0.457, 0.380),
+    ]
+    for i, (label, before, after) in enumerate(gauge_rows):
+        gauge.add_trace(go.Scatter(x=[before, after], y=[label, label], mode="lines", line=dict(color="#ccc", width=2), showlegend=False, hoverinfo="skip"))
+        gauge.add_trace(go.Scatter(x=[before], y=[label], mode="markers", marker=dict(size=11, color=LIGHT, line=dict(color=PRIMARY, width=1.5)), name="Baseline", legendgroup="baseline", showlegend=(i == 0), hovertemplate=f"Baseline: {before:.3f}<extra></extra>"))
+        gauge.add_trace(go.Scatter(x=[after], y=[label], mode="markers+text", marker=dict(size=13, color=PRIMARY), text=[f"{after:.3f}"], textposition="top center", textfont=dict(size=11, color=DARK), name="Mitigated", legendgroup="mitigated", showlegend=(i == 0), hovertemplate=f"Mitigated: {after:.3f}<extra></extra>"))
+
+    gauge.add_annotation(text="Female test sample: n=39 · Male: n=145", xref="paper", yref="paper", x=0, y=-0.28, xanchor="left", showarrow=False, font=dict(size=10, color="#888"))
+    gauge.update_layout(xaxis=dict(range=[0, 0.5], showgrid=False, zeroline=False, title=None), yaxis=dict(showgrid=False, zeroline=False), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', legend=dict(orientation='h', y=1.25), margin=dict(t=50, b=45, l=10, r=10), height=240, font=dict(color=DARK, size=12))
+    st.plotly_chart(gauge, use_container_width=True, config={'displayModeBar': False})
 
     col1, col2 = st.columns(2)
     with col1:
@@ -545,14 +613,20 @@ with tabs[1]:
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
-    with col1: st.metric("Overall flagged", "10.3%")
-    with col2: st.metric("Male patients flagged", "9.0%")
-    with col3: st.metric("Female patients flagged", "15.4%")
+    st.metric("Overall flagged for review", "10.3%")
+
+    flag_fig = go.Figure()
+    flag_fig.add_trace(go.Bar(name='Male', x=['Flagged for clinician review'], y=[9.0], marker_color="#7b2d4e", text=['9.0%'], textposition='outside', width=0.3))
+    flag_fig.add_trace(go.Bar(name='Female', x=['Flagged for clinician review'], y=[15.4], marker=dict(color="#e8a3b8", pattern=dict(shape="/")), text=['15.4%'], textposition='outside', width=0.3))
+    flag_fig.add_annotation(text="Female n=39 · Male n=145", xref="paper", yref="paper", x=0.5, y=-0.18, xanchor="center", showarrow=False, font=dict(size=10, color="#888"))
+    flag_fig.update_layout(barmode='group', yaxis=dict(range=[0,25], showgrid=False, showticklabels=False), xaxis=dict(showgrid=False), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', legend=dict(orientation='h', y=1.15), margin=dict(t=20,b=45,l=0,r=20), font=dict(color=DARK, size=13), height=280)
+    st.plotly_chart(flag_fig, use_container_width=True, config={'displayModeBar': False})
 
     st.markdown("""<div style='font-size:0.86rem; color:#555; margin-top:0.3rem;'>
-        <strong>Finding:</strong> Female patients were flagged for review more frequently than male patients,
-        suggesting greater uncertainty in predictions for this group. This may be related to differences in training data representation.
+        <strong>Finding:</strong> Female patients were flagged for review nearly twice as often as male
+        patients — the same disparity seen in the recall gap, surfacing here through a separate mechanism
+        (model confidence rather than classification outcome). This may be related to differences in
+        training data representation.
     </div>""", unsafe_allow_html=True)
 
     # ── OVERALL OUTCOME ──
