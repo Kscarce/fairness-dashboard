@@ -260,7 +260,7 @@ criteria = {
         "headline": "3 of 7", "headline_label": "Governance criteria met",
         "mitigated_headline": "4 of 8", "mitigated_headline_label": "Governance criteria met",
         "baseline_finding": "Met 3 of 7 checklist criteria, below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ". The pipeline lacked a clinician override, a patient challenge mechanism, an audit trail, and model version history. The dashboard partially addresses this through transparent communication of predictions and uncertainty.",
-        "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence between " + tt("30% and 70%", CONFIDENCE_BAND_EXPLANATION) + " are flagged for clinician review (10.3% of test cases). A new checklist item, “Low confidence predictions flagged for human review,” was added to capture this intervention, raising both the number of criteria met and the total from 3 of 7 to 4 of 8. Because the total also increased, the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + " became harder to reach rather than easier, and the criterion is not met under either version of the checklist.",
+        "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence between " + tt("30% and 70%", CONFIDENCE_BAND_EXPLANATION) + " are flagged for clinician review (10.3% of test cases), adding a new checklist item. Because the checklist total grew alongside it, the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + " became harder to reach rather than easier, so the criterion remains unmet.",
         "metrics": "Proportion of correctability checklist criteria met (qualitative assessment)"
     },
     "Ethicality": {
@@ -278,6 +278,36 @@ def badge(result):
     cls = {"PASS": "pass", "FAIL": "fail", "PARTIAL": "partial"}[result]
     icon = {"PASS": "\u2713", "FAIL": "\u2715", "PARTIAL": "\u26a0"}[result]
     return f"<span class='badge {cls}-badge'>{icon} {result}</span>"
+
+baseline_counts = {"PASS": 0, "FAIL": 0, "PARTIAL": 0}
+mitigated_counts = {"PASS": 0, "FAIL": 0, "PARTIAL": 0}
+for _c in criteria.values():
+    baseline_counts[_c["baseline"]] += 1
+    mitigated_counts[_c["mitigated"]] += 1
+
+def dot_row(pass_n=0, partial_n=0, fail_n=0):
+    pass_dots = "\u25cf" * pass_n
+    partial_dots = "\u25cf" * partial_n
+    fail_dots = "\u25cb" * fail_n
+    html = ""
+    if pass_n:
+        html += f"<span style='color:{PASS_COLOR};'>{pass_dots}</span>"
+    if partial_n:
+        html += f"<span style='color:{PARTIAL_COLOR};'>{partial_dots}</span>"
+    if fail_n:
+        html += f"<span style='color:#d9b3bd;'>{fail_dots}</span>"
+    return html
+
+def spec_strip(extra_label=None, extra_value=None):
+    extra_html = f"<div class='spec-item'><strong>{extra_label}</strong>{extra_value}</div>" if extra_label else ""
+    return f"""
+    <div class='spec-strip'>
+        <div class='spec-item'><strong>Algorithm</strong>Logistic regression classifier</div>
+        <div class='spec-item'><strong>Data</strong>UCI Heart Disease, 918 records</div>
+        <div class='spec-item'><strong>Predicts</strong>Presence of heart disease</div>
+        {extra_html}
+    </div>
+    """
 
 tabs = st.tabs(["Overview", "Methodology", "Fairness Assessment", "Survey", "Discussion"])
 
@@ -312,9 +342,12 @@ with tabs[0]:
         st.markdown(f"""
         <div class='card' style='text-align:center; padding:2rem;'>
             <div class='kpi-label'>Fairness Criteria Met</div>
-            <div class='kpi-number'>3 of 6</div>
-            <div class='pip-row'><span style='color:{PASS_COLOR};'>\u25cf\u25cf\u25cf</span><span style='color:#d9b3bd;'>\u25cb\u25cb\u25cb</span></div>
-            <div style='font-size:0.82rem; color:#5f5f5f; margin-top:0.3rem;'>3 pass, 3 fail (baseline)</div>
+            <div class='kpi-number'>{baseline_counts['PASS']} of {len(criteria)}</div>
+            <div class='pip-row'>{dot_row(pass_n=baseline_counts['PASS'], fail_n=baseline_counts['FAIL'])}</div>
+            <div style='font-size:0.82rem; color:#5f5f5f; margin-top:0.3rem;'>{baseline_counts['PASS']} pass, {baseline_counts['FAIL']} fail (baseline)</div>
+            <div style='font-size:0.78rem; color:#888; margin:0.7rem 0 0.2rem; text-transform:uppercase; letter-spacing:0.04em;'>After mitigation</div>
+            <div class='pip-row'>{dot_row(pass_n=mitigated_counts['PASS'], partial_n=mitigated_counts['PARTIAL'], fail_n=mitigated_counts['FAIL'])}</div>
+            <div style='font-size:0.82rem; color:#5f5f5f; margin-top:0.3rem;'>{mitigated_counts['PASS']} pass, {mitigated_counts['PARTIAL']} partial, {mitigated_counts['FAIL']} fail (after mitigation)</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
@@ -341,12 +374,7 @@ with tabs[0]:
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("<div class='rule-label'>The Model</div>", unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class='spec-strip'>
-        <div class='spec-item'><strong>Algorithm</strong>Logistic regression classifier</div>
-        <div class='spec-item'><strong>Data</strong>UCI Heart Disease, 918 records</div>
-        <div class='spec-item'><strong>Predicts</strong>Presence of heart disease</div>
-    </div>
+    st.markdown(spec_strip() + """
     <div class='spec-callout'><strong>Known limitation:</strong> only 21% of records are female.</div>
     """, unsafe_allow_html=True)
     st.markdown(f"""<div style='font-size:0.85rem; color:#666; margin-top:0.8rem;'>
@@ -369,7 +397,10 @@ with tabs[0]:
         with col:
             st.markdown(f"""
             <div class='legend-card'>
-                <span class='rule-name'>{name}</span>
+                <div style='display:flex; justify-content:space-between; align-items:center; gap:0.6rem;'>
+                    <span class='rule-name'>{name}</span>
+                    {badge(data['baseline'])}
+                </div>
                 <div class='rule-desc'>{data['purpose']}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -382,14 +413,7 @@ with tabs[1]:
     st.markdown("<div class='subtitle'>The data, model, and two-stage evaluation behind the fairness assessment</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='rule-label' style='margin-top:1.2rem;'>The Model</div>", unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class='spec-strip'>
-        <div class='spec-item'><strong>Algorithm</strong>Logistic regression classifier</div>
-        <div class='spec-item'><strong>Data</strong>UCI Heart Disease, 918 records</div>
-        <div class='spec-item'><strong>Predicts</strong>Presence of heart disease</div>
-        <div class='spec-item'><strong>Train / test split</strong>734 / 184, stratified 80/20</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(spec_strip("Train / test split", "734 / 184, stratified 80/20"), unsafe_allow_html=True)
     st.markdown(f"""
     <div class='method-box' style='margin-top:0.8rem;'>
         <strong>Why logistic regression?</strong> It shows how it reached its answer. That matters for
@@ -422,7 +446,6 @@ with tabs[1]:
     method_rows = "".join(f"""
         <tr style='border-bottom:1px solid #f0e0e5;'>
             <td style='padding:0.6rem 0.7rem; font-weight:600; color:{DARK}; white-space:nowrap; vertical-align:top;'>{name}</td>
-            <td style='padding:0.6rem 0.7rem; color:#444; vertical-align:top;'>{data['purpose']}</td>
             <td style='padding:0.6rem 0.7rem; color:#444; vertical-align:top;'>{data['metrics']}</td>
         </tr>""" for name, data in criteria.items())
     st.markdown(f"""
@@ -432,7 +455,6 @@ with tabs[1]:
             <thead>
                 <tr style='border-bottom:2px solid #e0c3cc;'>
                     <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>Criterion</th>
-                    <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>What It Means</th>
                     <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>How It's Measured</th>
                 </tr>
             </thead>
@@ -533,6 +555,8 @@ with tabs[2]:
         finding = data["mitigated_finding"] if show_mit else data["baseline_finding"]
         headline = data["mitigated_headline"] if show_mit else data["headline"]
         headline_label = data["mitigated_headline_label"] if show_mit else data["headline_label"]
+        if name == "Correctability" and show_mit:
+            headline = f"{data['headline']} → {data['mitigated_headline']}"
         cls = {"PASS": "pass", "FAIL": "fail", "PARTIAL": "partial"}[result]
         num_color = {"PASS": PASS_COLOR, "FAIL": FAIL_COLOR, "PARTIAL": PARTIAL_COLOR}[result]
 
@@ -556,30 +580,31 @@ with tabs[2]:
             if name == "Correctability":
                 if show_mit:
                     checklist = [
-                        ("Prediction outputs are visible and interpretable", True),
-                        ("Confidence scores are provided with predictions", True),
-                        ("Low confidence predictions flagged for human review", True),
-                        ("Clinician override mechanism exists", False),
-                        ("Patient challenge mechanism exists", False),
-                        ("Audit trail of predictions is maintained", False),
-                        ("Model version history is recorded", False),
-                        ("Dashboard communicates uncertainty to stakeholders", True),
+                        ("Prediction outputs are visible and interpretable", True, False),
+                        ("Confidence scores are provided with predictions", True, False),
+                        ("Low confidence predictions flagged for human review", True, True),
+                        ("Clinician override mechanism exists", False, False),
+                        ("Patient challenge mechanism exists", False, False),
+                        ("Audit trail of predictions is maintained", False, False),
+                        ("Model version history is recorded", False, False),
+                        ("Dashboard communicates uncertainty to stakeholders", True, False),
                     ]
-                    st.markdown("**Checklist (post-mitigation): 4 of 8 met**")
+                    st.markdown(f"**Checklist: {data['headline']} at baseline → {data['mitigated_headline']} after mitigation**")
                 else:
                     checklist = [
-                        ("Prediction outputs are visible and interpretable", True),
-                        ("Confidence scores are provided with predictions", True),
-                        ("Clinician override mechanism exists", False),
-                        ("Patient challenge mechanism exists", False),
-                        ("Audit trail of predictions is maintained", False),
-                        ("Model version history is recorded", False),
-                        ("Dashboard communicates uncertainty to stakeholders", True),
+                        ("Prediction outputs are visible and interpretable", True, False),
+                        ("Confidence scores are provided with predictions", True, False),
+                        ("Clinician override mechanism exists", False, False),
+                        ("Patient challenge mechanism exists", False, False),
+                        ("Audit trail of predictions is maintained", False, False),
+                        ("Model version history is recorded", False, False),
+                        ("Dashboard communicates uncertainty to stakeholders", True, False),
                     ]
-                    st.markdown("**Checklist (baseline): 3 of 7 met**")
-                for item, passed in checklist:
+                    st.markdown(f"**Checklist (baseline): {data['headline']} met**")
+                for item, passed, is_new in checklist:
                     icon = "✅" if passed else "❌"
-                    st.markdown(f"{icon} {item}")
+                    tag = " — **added after mitigation**" if is_new else ""
+                    st.markdown(f"{icon} {item}{tag}")
             elif name == "Ethicality":
                 checklist = [
                     ("Ethics approval granted by Newcastle University", True),
