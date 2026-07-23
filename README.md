@@ -1,16 +1,21 @@
 # Procedural Fairness in Healthcare AI
 
-This repository holds the code, data, and analysis notebook for an MSc dissertation
-(Newcastle University) evaluating **procedural fairness** in a heart disease prediction
-model. The evaluation is based on Leventhal's (1980) procedural justice framework,
-adapted for healthcare algorithmic decision-making following the approach of
-Jabagi et al. (2025). A public survey (n=325) on perceptions of fairness in healthcare
-AI is also analysed alongside the technical assessment.
+This repository contains the code, dataset, analysis notebook, and Streamlitdashboard 
+developed for my MSc dissertation at Newcastle University. The project evaluates whether 
+a heart disease prediction model follows principles of procedural fairness when applied to 
+healthcare algorithmic decision-making The evaluation is based on Leventhal's (1980) 
+procedural justice framework,adapted for healthcare algorithmic decision-making
+following the approach ofJabagi et al. (2025). A public survey (n=325) on perceptions 
+of fairness in healthcare AI is also analysed alongside the technical assessment.
 
-The model itself is a logistic regression classifier trained on the UCI Heart Disease
+The model is a logistic regression classifier trained on the UCI Heart Disease
 dataset, evaluated against six procedural fairness criteria (accuracy, bias suppression,
 representativeness, consistency, correctability, ethicality), before and after two
 fairness-aware mitigation strategies.
+
+## Project overview
+
+The aim of this project was not only to measure model performance, but to investigate whether a healthcare AI system can be considered procedurally fair across different stakeholder perspectives.
 
 ## Repository structure
 
