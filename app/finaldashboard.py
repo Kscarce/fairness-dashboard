@@ -43,14 +43,14 @@ st.markdown(f"""
     .survey-stat {{ background: white; border-radius: 10px; padding: 1rem 1.2rem; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }}
     .survey-pct {{ font-size: 2.2rem; font-weight: 700; color: {PRIMARY}; }}
     .survey-label {{ font-size: 0.82rem; color: #555; margin-top: 0.2rem; }}
-    .rec-box {{ background: white; border-radius: 10px; padding: 1rem 1.4rem; margin-bottom: 0.6rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid {PRIMARY}; }}
+    .rec-box {{ background: white; border-radius: 10px; padding: 1rem 1.4rem; margin-bottom: 0.6rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid #ccc; }}
     .hero-number {{ font-size: 2.8rem; font-weight: 700; color: {DARK}; line-height: 1; }}
     .hero-desc {{ font-size: 0.85rem; color: #5a5a5a; margin-top: 0.3rem; }}
     .rule-label {{ font-size: 0.9rem; font-weight: 700; color: {RULE_LABEL}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.8rem; }}
     .tier-section {{ background: white; border-radius: 10px; padding: 1.4rem 1.6rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }}
     .kpi-label {{ font-size: 1.1rem; font-weight: 700; color: {DARK}; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem; }}
     .kpi-number {{ font-size: 4.5rem; font-weight: 700; color: {PRIMARY}; line-height: 1; }}
-    .method-box {{ background: white; border-radius: 10px; padding: 1.2rem 1.5rem; margin-bottom: 0.8rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid {PRIMARY}; }}
+    .method-box {{ background: white; border-radius: 8px; padding: 0.8rem 1.1rem; margin-bottom: 0.6rem; border: 1px solid #eee; }}
     .pip-row {{ margin-top: 0.5rem; font-size: 1.1rem; letter-spacing: 0.15rem; }}
     .headline-metric {{ font-size: 2.4rem; font-weight: 700; line-height: 1.1; }}
     .headline-metric-label {{ font-size: 0.78rem; color: #5a5a5a; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.1rem; }}
@@ -500,7 +500,7 @@ with tabs[2]:
     st.markdown("<div class='subtitle'>Detailed evaluation of each criterion with technical results</div>", unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div class='card' style='background:#fff0f3; border-left:4px solid {PRIMARY}; margin-bottom:1.5rem;'>
+    <div class='method-box' style='margin-bottom:1.5rem;'>
         <strong>Framework</strong><br><br>
         Six procedural fairness criteria, based on Leventhal's (1980) procedural justice framework
         adapted for healthcare by Jabagi et al. (2025), each assessed at baseline and after
@@ -625,7 +625,7 @@ with tabs[2]:
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("## Fairness Mitigation Strategies Applied")
     st.markdown(f"""
-    <div class='card' style='border-left:4px solid {PRIMARY}; background:#fff0f3; margin-bottom:1.2rem;'>
+    <div class='method-box' style='margin-bottom:1.2rem;'>
         <div style='font-size:0.9rem; color:#444; line-height:1.6;'>
             Two interventions were applied to address limitations identified in the baseline assessment:
             (1) a fairness-aware training approach to reduce demographic disparities, and
@@ -741,7 +741,7 @@ with tabs[2]:
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("### Overall Outcome")
     st.markdown(f"""
-    <div class='card' style='border-left:4px solid {PRIMARY}; background:#fff0f3;'>
+    <div class='card' style='border-left:4px solid #ccc; background:#fff0f3;'>
         <div style='font-size:0.92rem; color:#444; line-height:1.6;'>
             The mitigation strategy improved procedural fairness by reducing disparities between
             demographic groups and introducing a mechanism for clinician oversight. Notably, female recall
@@ -850,7 +850,7 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("<div class='rule-label' style='margin-top:0.5rem;'>Additional Context: Trust in AI</div>", unsafe_allow_html=True)
     st.markdown(f"""
-    <div class='card' style='padding:0.9rem 1.2rem;'>
+    <div class='method-box'>
         <span style='font-size:1.4rem; font-weight:700; color:{DARK};'>{trust_pct}%</span>
         <span style='font-size:0.85rem; color:#555;'> reported some level of trust in healthcare AI but believed human oversight should always remain.</span>
         <div style='font-size:0.76rem; color:#888; margin-top:0.3rem; font-style:italic;'>Context only: this does not directly measure accuracy as a fairness criterion and is not one of the six evaluated criteria.</div>
@@ -879,7 +879,7 @@ with tabs[4]:
     st.markdown("<div class='subtitle'>Integrating technical findings and public expectations to identify priorities for responsible deployment</div>", unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div class='card' style='background:#fff0f3; border-left:4px solid {PRIMARY}; margin-bottom:1.5rem;'>
+    <div class='method-box' style='margin-bottom:1.5rem;'>
         This tab draws on two independent sources: the pipeline, which evaluates the model's technical
         and procedural fairness, and the public survey, which explores what people expect from fairness
         in healthcare AI. They are kept separate, since one does not validate the other, and are only
@@ -930,7 +930,7 @@ with tabs[4]:
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("## Bringing the Evidence Together")
     st.markdown(f"""
-    <div class='card' style='border-left:4px solid {PRIMARY};'>
+    <div class='card' style='border-left:4px solid #ccc;'>
         <div style='font-size:0.9rem; color:#444; line-height:1.6;'>
             Mitigation substantially narrowed the recall gap between male and female patients
             (70.0% to 90.0% for female patients, with male recall unchanged at 93.5%), and moved two
@@ -984,7 +984,7 @@ with tabs[4]:
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown(f"""
-    <div class='card' style='border-left:4px solid {PRIMARY}; background:#fff0f3;'>
+    <div class='card' style='border-left:4px solid #ccc; background:#fff0f3;'>
         <div style='font-size:0.95rem; color:#444; line-height:1.6;'>
             <strong>Overall conclusion:</strong> Responsible healthcare AI requires both technical evaluation
             of model behaviour and consideration of stakeholder expectations and values. Improving fairness requires
