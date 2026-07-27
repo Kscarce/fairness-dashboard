@@ -970,17 +970,17 @@ with tabs[4]:
     <div class='method-box' style='margin-bottom:1.5rem;'>
         This tab draws on two independent sources: the pipeline, which evaluates the model's technical
         and procedural fairness, and the public survey, which explores what people expect from fairness
-        in healthcare AI. They are kept separate, since one does not validate the other, and are only
-        brought together in the final recommendations.
+        in healthcare AI. They are kept separate, since one does not validate the other, and are
+        considered together only after being reported independently below.
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("## Key Pipeline Findings")
     pipeline_rows = [
-        ("Accuracy", "AUC-ROC (0.957) exceeded the 0.80 threshold, indicating strong ability to distinguish between patients with and without heart disease. However, aggregate performance masked lower recall for female patients."),
+        ("Accuracy", "AUC-ROC exceeded the 0.80 threshold at baseline (0.957) and after mitigation (0.895), indicating strong discriminative ability throughout. The 0.062 decline after mitigation was a modest but real cost of the bias mitigation, and aggregate performance still masked lower recall for female patients at baseline."),
         ("Bias Suppression", "Bias mitigation substantially reduced disparities between male and female patients, raising female recall from 70.0% to 90.0% with no reduction in male recall, although both fairness measures remained above the predefined threshold."),
         ("Representativeness", "Female patients and younger age groups were underrepresented compared with real-world disease prevalence."),
-        ("Consistency", "Predictions remained stable under small, clinically realistic input perturbations, with instability of 0.0% at baseline and 1.1% after mitigation, both within the 5% threshold."),
+        ("Consistency", "Predictions remained stable under small, realistic changes to patient data, with instability of 0.0% at baseline and 1.1% after mitigation, both within the 5% threshold."),
         ("Correctability", "The pipeline lacked key correctability mechanisms. Confidence-based flagging was introduced to partially address this, improving criteria met from 3 of 7 to 4 of 8."),
         ("Ethicality", "Most ethical criteria were satisfied, but consent practices for secondary ML use were not documented."),
     ]
@@ -988,10 +988,11 @@ with tabs[4]:
     <div style='background:#7b2d4e; color:white; padding:0.5rem 0.8rem; border-radius:8px 8px 0 0; font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;'>Evidence source 1: Technical pipeline</div>
     <table style='width:100%; border-collapse:collapse; font-size:0.88rem; border:1px solid #f0d9df;'>
         <thead><tr style='border-bottom:2px solid #e0c3cc; background:#fbeef1;'>
-            <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK}; width:160px;'>Criterion</th>
+            <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK}; width:140px;'>Criterion</th>
+            <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK}; width:150px;'>Baseline &rarr; Mitigated</th>
             <th style='text-align:left; padding:0.6rem 0.8rem; color:{DARK};'>Finding</th>
         </tr></thead>
-        <tbody>{"".join(f"<tr style='border-bottom:1px solid #eee;'><td style='padding:0.6rem 0.8rem; font-weight:600; vertical-align:top; color:{DARK};'>{c}</td><td style='padding:0.6rem 0.8rem; color:#444; line-height:1.5;'>{f}</td></tr>" for c, f in pipeline_rows)}</tbody>
+        <tbody>{"".join(f"<tr style='border-bottom:1px solid #eee;'><td style='padding:0.6rem 0.8rem; font-weight:600; vertical-align:top; color:{DARK};'>{c}</td><td style='padding:0.6rem 0.8rem; vertical-align:top;'><div style='display:flex; align-items:center; gap:0.35rem; flex-wrap:wrap;'>{badge(criteria[c]['baseline'])}<span style='color:#aaa;'>&rarr;</span>{badge(criteria[c]['mitigated'])}</div></td><td style='padding:0.6rem 0.8rem; color:#444; line-height:1.5;'>{f}</td></tr>" for c, f in pipeline_rows)}</tbody>
     </table>"""
     st.markdown(pipeline_html, unsafe_allow_html=True)
 
@@ -1020,14 +1021,16 @@ with tabs[4]:
     st.markdown(f"""
     <div class='card' style='border-left:4px solid #ccc;'>
         <div style='font-size:0.9rem; color:#444; line-height:1.6;'>
-            Mitigation substantially narrowed the recall gap between male and female patients
-            (70.0% to 90.0% for female patients, with male recall unchanged at 93.5%), and moved two
-            failing criteria, Bias Suppression and Correctability, to Partial, without fully
-            resolving either. The public survey points in the same direction from a different angle:
-            a majority of respondents expect equal performance across patient groups and continued
-            human oversight regardless of how accurate the tool is. Together, the two sources suggest
-            the technical improvements made here are a step toward what the public expects, not a
-            substitute for it.
+            The clearest connection between the two sources is a direct one: Correctability was the
+            pipeline's weakest criterion, still only Partial after mitigation, and the ability to
+            question or challenge an AI-assisted decision was the public's strongest and most consistent
+            expectation. The technical result and the public expectation point at the same gap from two
+            independent directions, which makes it the priority least safe to leave unaddressed.
+            Bias mitigation narrowed the recall gap between male and female patients without closing it,
+            which lines up with the survey's more moderate, though still majority, preference for equal
+            performance over raw accuracy. Together, the two sources suggest the technical improvements
+            made here are a step toward what the public expects, not a substitute for it, and that the
+            step still owed is the largest on correctability.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1043,18 +1046,12 @@ with tabs[4]:
         {"title": "Collect more representative clinical data", "addresses": "Representativeness, Bias Suppression",
          "finding": "Female patients make up 21.0% of the dataset against 33.0% of real-world CHD prevalence (BHF, 2021), and the small female test sample (n=39) limits the precision of subgroup fairness estimates.",
          "recommendation": "Prioritise more representative clinical datasets before deployment."},
-        {"title": "Implement clinician override and patient challenge mechanisms", "addresses": "Correctability",
-         "finding": "Only 4 of 8 correctability criteria were satisfied, with no route for clinicians or patients to challenge a decision.",
-         "recommendation": "Add clear mechanisms for clinician override, patient review requests, and accountability tracking."},
-        {"title": "Establish prediction audit trails and model version control", "addresses": "Correctability",
-         "finding": "Audit trail and model version history mechanisms were not available within the assessed pipeline.",
-         "recommendation": "Add audit trails and version control to support accountability and retrospective review."},
+        {"title": "Build correctability infrastructure", "addresses": "Correctability",
+         "finding": "Only 4 of 8 correctability checklist criteria were satisfied. The pipeline has no clinician override, no patient challenge mechanism, no audit trail, and no model version history.",
+         "recommendation": "Add clinician override and patient challenge mechanisms alongside audit trails and version control, so decisions can be reviewed, contested, and traced after the fact."},
         {"title": "Address informed consent for retrospective data use", "addresses": "Ethicality",
          "finding": "Consent practices for secondary ML use were not documented in the dataset.",
          "recommendation": "Establish clear consent frameworks for the secondary use of clinical data in ML research."},
-        {"title": "Improve fairness communication and stakeholder involvement", "addresses": "All criteria",
-         "finding": "This dashboard is one approach to communicating fairness findings to a mixed audience.",
-         "recommendation": "Evaluate whether fairness dashboards are understandable and useful for clinicians, patients, and policymakers."},
     ]
 
     for n, rec in enumerate(recs, 1):
@@ -1070,14 +1067,28 @@ with tabs[4]:
         </div>
         """, unsafe_allow_html=True)
 
+    st.markdown(f"""
+    <div class='method-box' style='margin-top:0.4rem;'>
+        <strong>A note on this dashboard:</strong> Presenting fairness findings clearly to a mixed
+        audience, as attempted here, is itself an open question rather than a solved one. Whether this
+        dashboard is understandable and useful to clinicians, patients, and policymakers is something
+        that would need to be tested directly with those audiences, not assumed from the design choices
+        made here.
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown(f"""
     <div class='card' style='border-left:4px solid #ccc; background:#fff0f3;'>
         <div style='font-size:0.95rem; color:#444; line-height:1.6;'>
-            <strong>Overall conclusion:</strong> Responsible healthcare AI requires both technical evaluation
-            of model behaviour and consideration of stakeholder expectations and values. Improving fairness requires
-            not only model-level interventions, but also better data practices, human oversight, and
-            transparent governance.
+            <strong>Overall conclusion:</strong> This model met three of six procedural fairness criteria
+            at baseline, and closing part of the gender recall gap came at a real but modest accuracy cost
+            (AUC-ROC 0.957 &rarr; 0.895). The priority that matters most going forward is correctability:
+            it was the weakest technical criterion, and human oversight was the public's strongest and most
+            consistent expectation, so clinician override, patient challenge, and audit trails are a direct
+            response to both, not just good practice in the abstract. None of this can be fixed by better
+            modelling alone: the underlying female representation gap (21.0% of the dataset against 33.0%
+            of real-world prevalence) is a data problem, not an algorithmic one.
         </div>
     </div>
     """, unsafe_allow_html=True)

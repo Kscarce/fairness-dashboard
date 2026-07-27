@@ -37,7 +37,19 @@
       "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8508)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8508)",
       "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8510)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8510)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8510)",
+      "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8511)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8511)",
+      "Bash(jupyter nbconvert *)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import pptx; print\\('pptx', pptx.__version__\\)\")",
+      "Bash(python -c \"import matplotlib; print\\('matplotlib', matplotlib.__version__\\)\")",
+      "Bash(python -c \"import pandas; print\\('pandas', pandas.__version__\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -m pip install --quiet python-pptx matplotlib)",
+      "Read(//c/Program Files/Microsoft Office/**)",
+      "Read(//c/Program Files \\\\\\(x86\\\\\\)/**)",
+      "Bash(python *)"
     ]
   }
 }
