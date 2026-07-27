@@ -933,16 +933,19 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
     st.markdown(f"""
     <div class='card' style='border-left:4px solid #ccc; background:#fff0f3;'>
         <div style='font-size:0.92rem; color:#444; line-height:1.6;'>
-            This survey adds a public perspective alongside the technical fairness assessment in the
-            previous tab. Where that assessment measured whether the model meets a fixed set of fairness
-            criteria, this survey asked what people actually expect from healthcare AI in the first
-            place, and the two do not always point the same way. Respondents were most united on wanting
-            the ability to question and oversee AI decisions and on being told when AI or their data is
-            in use, more divided on whether equal performance matters more than raw accuracy, and split
-            almost evenly on what "fair" even means, treating every patient identically or aiming for
-            equal outcomes across groups. That disagreement matters: no single technical fix satisfies
-            every definition of fairness at once. The <strong>Discussion</strong> tab brings this public
-            perspective together with the technical results to consider what they mean side by side.
+            This survey complements the technical fairness assessment presented in the previous tab by
+            capturing public expectations of healthcare AI. While the procedural fairness assessment
+            evaluated whether the model met a predefined set of fairness criteria, the survey explored
+            what people believe fair healthcare AI should look like in practice, and the two do not
+            always align. Respondents showed the strongest agreement on the need to question and oversee
+            AI-assisted decisions and to be informed when AI or their data is used. These expectations
+            closely align with correctability, the criterion in which the model performed weakest.
+            Opinions were more divided on whether equal performance should be prioritised over overall
+            accuracy, and more divided still on what fairness itself means, with respondents tending to
+            favour equal outcomes across patient groups over treating every patient identically. This
+            diversity of opinion highlights that no single technical intervention can satisfy every
+            interpretation of fairness. The <strong>Discussion</strong> tab brings the technical and
+            public findings together to consider their implications side by side.
         </div>
     </div>
     """, unsafe_allow_html=True)
