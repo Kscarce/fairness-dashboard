@@ -14,7 +14,16 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8504)",
       "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8504 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess\")",
       "Bash(powershell -Command \"Stop-Process -Id 25732 -Force\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 3 http://localhost:8504)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 3 http://localhost:8504)",
+      "Bash(python -c \"import streamlit, pandas, plotly, openpyxl\")",
+      "Bash(streamlit run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8501)",
+      "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8501)",
+      "Bash(disown)",
+      "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8502)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8502)",
+      "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%streamlit%finaldashboard%'\\\\\" | Select-Object ProcessId,CommandLine\" 2>&1)",
+      "PowerShell(Stop-Process *)"
     ]
   }
 }

@@ -89,6 +89,9 @@ st.markdown(f"""
     }}
     /* Preserve intentionally colored elements */
     .pass-badge, .fail-badge, .partial-badge {{ color: white !important; }}
+    .dot-pass {{ color: {PASS_COLOR} !important; }}
+    .dot-partial {{ color: {PARTIAL_COLOR} !important; }}
+    .dot-fail {{ color: {FAIL_COLOR} !important; }}
     .tooltip .tooltiptext {{ color: #fff !important; background-color: #333 !important; }}
     .card, .method-box, .rec-box, .tier-section, .survey-stat {{
         background: white !important;
@@ -212,9 +215,9 @@ THRESH_REPR = "A representation ratio of at least 0.80, adapted from the four-fi
 THRESH_CONSISTENCY = "An instability rate of no more than 5%, defined by the researcher as a conservative operational benchmark since no established clinical standard exists for this type of test."
 THRESH_CHECKLIST_CORR = "At least 80% of correctability checklist criteria met, an operational benchmark defined by the researcher for sufficient governance and accountability coverage."
 THRESH_CHECKLIST_ETH = "At least 80% of ethicality checklist criteria met, an operational benchmark defined by the researcher for sufficient ethical and legal coverage."
-RECALL_EXPLANATION = "The percentage of patients who actually had heart disease that the model correctly identified (True Positives \u00f7 (True Positives + False Negatives)). High recall matters in healthcare because a missed case (false negative) means a sick patient goes undetected."
+RECALL_EXPLANATION = "Of patients who actually have heart disease, the percentage the model correctly identifies."
 CONFIDENCE_BAND_EXPLANATION = "A very low score means the model is confident the patient does not have heart disease, and a very high score means it is confident they do. Scores in the middle are where the model is least certain, closest to a coin flip, so those are the ones a clinician should look at more closely."
-FAIRNESS_TRAINING_EXPLANATION = "An ExponentiatedGradient algorithm was applied, constrained by Fairlearn's EqualizedOdds criterion, with a tolerance of 0.01 to balance fairness against predictive performance rather than forcing an exact match between groups. The same imputation, scaling, and logistic regression steps used in the baseline model were kept unchanged, so any difference in the result reflects the mitigation itself rather than a different underlying model."
+FAIRNESS_TRAINING_EXPLANATION = "A training method that reduces differences in error rates between patient groups, instead of optimising for overall accuracy alone."
 SEED_ROBUSTNESS_EXPLANATION = "Repeating the test across 20 random seeds gave a mean instability of 0.03% (range 0.00% to 0.54%), confirming the result is not an artefact of a single perturbation draw. Only 2 of 184 test cases sat close to the decision boundary, which explains the high stability."
 
 criteria = {
@@ -291,11 +294,11 @@ def dot_row(pass_n=0, partial_n=0, fail_n=0):
     fail_dots = "\u25cb" * fail_n
     html = ""
     if pass_n:
-        html += f"<span style='color:{PASS_COLOR};'>{pass_dots}</span>"
+        html += f"<span class='dot-pass'>{pass_dots}</span>"
     if partial_n:
-        html += f"<span style='color:{PARTIAL_COLOR};'>{partial_dots}</span>"
+        html += f"<span class='dot-partial'>{partial_dots}</span>"
     if fail_n:
-        html += f"<span style='color:#d9b3bd;'>{fail_dots}</span>"
+        html += f"<span class='dot-fail'>{fail_dots}</span>"
     return html
 
 def spec_strip(extra_label=None, extra_value=None):
@@ -348,12 +351,17 @@ with tabs[0]:
             <div style='font-size:0.78rem; color:#888; margin:0.7rem 0 0.2rem; text-transform:uppercase; letter-spacing:0.04em;'>After mitigation</div>
             <div class='pip-row'>{dot_row(pass_n=mitigated_counts['PASS'], partial_n=mitigated_counts['PARTIAL'], fail_n=mitigated_counts['FAIL'])}</div>
             <div style='font-size:0.82rem; color:#5f5f5f; margin-top:0.3rem;'>{mitigated_counts['PASS']} pass, {mitigated_counts['PARTIAL']} partial, {mitigated_counts['FAIL']} fail (after mitigation)</div>
+            <div style='font-size:0.7rem; color:#888; margin-top:0.9rem; padding-top:0.6rem; border-top:1px solid #eee; display:flex; justify-content:center; gap:0.9rem; flex-wrap:wrap;'>
+                <span><span class='dot-pass'>●</span> Pass</span>
+                <span><span class='dot-partial'>●</span> Partial</span>
+                <span><span class='dot-fail'>○</span> Fail</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
         st.markdown(f"""
         <div class='card' style='padding:1.5rem 2rem;'>
-            <div class='kpi-label' style='margin-bottom:0.8rem;'>{tt("Recall", RECALL_EXPLANATION)} by Sex (Heart Disease Present Class)</div>
+            <div class='kpi-label' style='margin-bottom:0.8rem;'>{tt("Recall", RECALL_EXPLANATION)} by Sex for Patients With Heart Disease</div>
             <div style='display:flex; gap:2rem; align-items:center;'>
                 <div>
                     <span style='font-size:2.5rem; font-weight:700; color:{FAIL_COLOR};'>70.0%</span>
@@ -416,12 +424,9 @@ with tabs[1]:
     st.markdown(spec_strip("Train / test split", "734 / 184, stratified 80/20"), unsafe_allow_html=True)
     st.markdown(f"""
     <div class='method-box' style='margin-top:0.8rem;'>
-        <strong>Why logistic regression?</strong> It shows how it reached its answer. That matters for
-        the criteria that require reviewable decisions.<br><br>
-        <strong>Why keep sex and age as inputs?</strong> Removing them would not stop the model
-        picking up those patterns indirectly, through other related clinical measurements. Keeping
-        them in means any such pattern can be measured directly, as it is in the Bias Suppression
-        criterion.
+        Logistic regression was chosen for its interpretability, allowing model decisions to be
+        examined and reviewed. Sex and age were retained as input features, and demographic labels
+        were preserved separately to support group-level fairness analysis.
     </div>
     """, unsafe_allow_html=True)
 
@@ -443,11 +448,20 @@ with tabs[1]:
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("<div class='rule-label'>The Six Criteria: What They Test and How</div>", unsafe_allow_html=True)
+    method_descriptions = {
+        "Accuracy": ("AUC-ROC, accuracy, precision, recall, and F1-score on the held-out test set", "Quantitative"),
+        "Bias Suppression": ("Equalised odds difference, demographic parity difference, and subgroup recall comparisons", "Quantitative"),
+        "Representativeness": ("Female representation ratio comparing dataset composition against real-world CHD prevalence", "Quantitative"),
+        "Consistency": ("Prediction stability under clinically realistic input variation", "Quantitative"),
+        "Correctability": ("Qualitative checklist assessing transparency, review mechanisms, and ability to challenge decisions", "Qualitative"),
+        "Ethicality": ("Qualitative checklist assessing ethical safeguards, privacy, and responsible use", "Qualitative"),
+    }
     method_rows = "".join(f"""
         <tr style='border-bottom:1px solid #f0e0e5;'>
             <td style='padding:0.6rem 0.7rem; font-weight:600; color:{DARK}; white-space:nowrap; vertical-align:top;'>{name}</td>
-            <td style='padding:0.6rem 0.7rem; color:#444; vertical-align:top;'>{data['metrics']}</td>
-        </tr>""" for name, data in criteria.items())
+            <td style='padding:0.6rem 0.7rem; color:#444; vertical-align:top;'>{desc}</td>
+            <td style='padding:0.6rem 0.7rem; color:#444; vertical-align:top; white-space:nowrap;'>{atype}</td>
+        </tr>""" for name, (desc, atype) in method_descriptions.items())
     st.markdown(f"""
     <div class='card'>
         <div style='overflow-x:auto;'>
@@ -456,36 +470,61 @@ with tabs[1]:
                 <tr style='border-bottom:2px solid #e0c3cc;'>
                     <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>Criterion</th>
                     <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>How It's Measured</th>
+                    <th style='text-align:left; padding:0.5rem 0.7rem; color:{DARK}; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.03em;'>Assessment Type</th>
                 </tr>
             </thead>
             <tbody>{method_rows}</tbody>
         </table>
         </div>
         <div style='font-size:0.8rem; color:#666; margin-top:0.8rem; padding-top:0.6rem; border-top:1px solid #eee;'>
-            For Bias Suppression, equalised odds was prioritised over demographic parity when judging
-            pass/fail, because differences in false positive and false negative rates relate more
-            directly to potential clinical harm, particularly the risk of missed diagnoses.
+            For Bias Suppression, Equalised Odds was prioritised over Demographic Parity when determining
+            pass/fail status because differences in false positive and false negative rates are more
+            directly linked to potential clinical harm, particularly the risk of missed diagnoses.
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("<div class='rule-label'>The Two Mitigation Strategies</div>", unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class='method-box'>
-        <strong>1. Fairness-aware training (addresses Bias Suppression)</strong><br><br>
-        A {tt("fairness-aware training method", FAIRNESS_TRAINING_EXPLANATION)} re-weighted patient
-        records during training, so the model's error rates moved closer together across male and
-        female patients, rather than optimising for overall accuracy alone.
-    </div>
-    <div class='method-box'>
-        <strong>2. Confidence-based flagging (addresses Correctability)</strong><br><br>
-        The model already gives a confidence score for each prediction, not just a yes or no answer.
-        Predictions between {tt("30% and 70%", CONFIDENCE_BAND_EXPLANATION)} are automatically flagged
-        for clinician review, rather than returned as a routine result. This does not change what the
-        model predicts. It adds a signal for where a human should look more closely.
-    </div>
-    """, unsafe_allow_html=True)
+
+    mit_col1, mit_col2 = st.columns(2)
+    with mit_col1:
+        st.markdown(f"""
+        <div class='card' style='border-left:4px solid {PRIMARY}; height:100%;'>
+            <div style='display:flex; align-items:center; gap:0.7rem; margin-bottom:0.7rem;'>
+                <span class='rec-num' style='width:2.3rem; height:2.3rem; font-size:1.15rem; background:{PRIMARY};'>1</span>
+                <span style='font-weight:700; font-size:1rem; color:{DARK};'>Fairness-Aware Training</span>
+            </div>
+            <div style='margin-bottom:0.7rem;'><span class='rec-chip'>Addresses: Bias Suppression</span></div>
+            <div style='font-size:0.85rem; color:#444; line-height:1.6;'>
+                A {tt("fairness-aware training method", FAIRNESS_TRAINING_EXPLANATION)} re-weighted patient
+                records during training, so the model's error rates moved closer together across male and
+                female patients, rather than optimising for overall accuracy alone.
+            </div>
+            <div style='font-size:0.78rem; color:#666; margin-top:0.8rem; padding-top:0.6rem; border-top:1px solid #f0e0e5; line-height:1.5;'>
+                <strong>How it works:</strong> An ExponentiatedGradient algorithm, constrained by Fairlearn's
+                EqualizedOdds criterion (tolerance 0.01), re-weighted the training data. The same imputation,
+                scaling, and logistic regression steps used in the baseline model were kept unchanged, so any
+                difference in the result reflects the mitigation itself, not a different underlying model.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    with mit_col2:
+        st.markdown(f"""
+        <div class='card' style='border-left:4px solid {PRIMARY}; height:100%;'>
+            <div style='display:flex; align-items:center; gap:0.7rem; margin-bottom:0.7rem;'>
+                <span class='rec-num' style='width:2.3rem; height:2.3rem; font-size:1.15rem; background:{PRIMARY};'>2</span>
+                <span style='font-weight:700; font-size:1rem; color:{DARK};'>Confidence-Based Flagging</span>
+            </div>
+            <div style='margin-bottom:0.7rem;'><span class='rec-chip'>Addresses: Correctability</span></div>
+            <div style='font-size:0.85rem; color:#444; line-height:1.6;'>
+                The model already gives a confidence score for each prediction, not just a yes or no answer.
+                Predictions between {tt("30% and 70%", CONFIDENCE_BAND_EXPLANATION)} are automatically flagged
+                for clinician review, rather than returned as a routine result. This does not change what the
+                model predicts, it adds a signal for where a human should look more closely.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown(f"""<div style='font-size:0.85rem; color:#666; margin-top:0.5rem;'>
         Results of this evaluation, before and after both interventions, are presented in the
