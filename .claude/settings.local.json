@@ -23,7 +23,11 @@
       "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8502)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8502)",
       "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%streamlit%finaldashboard%'\\\\\" | Select-Object ProcessId,CommandLine\" 2>&1)",
-      "PowerShell(Stop-Process *)"
+      "PowerShell(Stop-Process *)",
+      "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8503)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8503)",
+      "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%streamlit%finaldashboard%'\\\\\" | Select-Object ProcessId\" 2>&1)",
+      "PowerShell(Get-CimInstance *)"
     ]
   }
 }

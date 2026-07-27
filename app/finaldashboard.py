@@ -89,9 +89,9 @@ st.markdown(f"""
     }}
     /* Preserve intentionally colored elements */
     .pass-badge, .fail-badge, .partial-badge {{ color: white !important; }}
-    .dot-pass {{ color: {PASS_COLOR} !important; }}
-    .dot-partial {{ color: {PARTIAL_COLOR} !important; }}
-    .dot-fail {{ color: {FAIL_COLOR} !important; }}
+    .stApp .dot-pass {{ color: {PASS_COLOR} !important; }}
+    .stApp .dot-partial {{ color: {PARTIAL_COLOR} !important; }}
+    .stApp .dot-fail {{ color: {FAIL_COLOR} !important; }}
     .tooltip .tooltiptext {{ color: #fff !important; background-color: #333 !important; }}
     .card, .method-box, .rec-box, .tier-section, .survey-stat {{
         background: white !important;
