@@ -1,7 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -m py_compile app/finaldashboard.py)"
+      "Bash(python -m py_compile app/finaldashboard.py)",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8501 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess\" 2>/dev/null)",
+      "Bash(powershell -Command \"Stop-Process -Id 22660 -Force\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 3 http://localhost:8501)",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8502 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app/finaldashboard.py', encoding='utf-8'\\).read\\(\\)\\)\")",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8503 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess\")",
+      "Bash(powershell -Command \"Stop-Process -Id 11916 -Force\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 3 http://localhost:8503)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8504)",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8504 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess\")",
+      "Bash(powershell -Command \"Stop-Process -Id 25732 -Force\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 3 http://localhost:8504)"
     ]
   }
 }
