@@ -16,6 +16,7 @@ BG = "#fdf8f9"
 PASS_COLOR = "#2d6a4f"
 FAIL_COLOR = "#9d0208"
 PARTIAL_COLOR = "#856404"
+DOT_PARTIAL_COLOR = "#d4a017"
 PASS_BG = "#d8f3dc"
 FAIL_BG = "#ffe0e0"
 PARTIAL_BG = "#fff3cd"
@@ -90,7 +91,7 @@ st.markdown(f"""
     /* Preserve intentionally colored elements */
     .pass-badge, .fail-badge, .partial-badge {{ color: white !important; }}
     .stApp .dot-pass {{ color: {PASS_COLOR} !important; }}
-    .stApp .dot-partial {{ color: {PARTIAL_COLOR} !important; }}
+    .stApp .dot-partial {{ color: {DOT_PARTIAL_COLOR} !important; }}
     .stApp .dot-fail {{ color: {FAIL_COLOR} !important; }}
     .tooltip .tooltiptext {{ color: #fff !important; background-color: #333 !important; }}
     .card, .method-box, .rec-box, .tier-section, .survey-stat {{
@@ -254,14 +255,14 @@ criteria = {
         "headline": "0.0%", "headline_label": "Predictions changed",
         "mitigated_headline": "1.1%", "mitigated_headline_label": "Predictions changed",
         "baseline_finding": "Small, realistic changes to patient data produced no change in predictions (0.0%), well below the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". Repeating the test across " + tt("multiple random variations", SEED_ROBUSTNESS_EXPLANATION) + " confirmed the model's decisions were not sensitive to minor input changes.",
-        "mitigated_finding": "After mitigation, 1.1% of predictions changed under the same perturbation test, still within the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". The small increase reflects the randomised ensemble produced by the mitigation algorithm rather than a single decision boundary.",
+        "mitigated_finding": "After mitigation, 1.1% of predictions changed under the same small, realistic changes to patient data, still within the 5% " + tt("threshold", THRESH_CONSISTENCY) + ". The small increase reflects the randomised ensemble produced by the mitigation algorithm rather than a single decision boundary.",
         "metrics": "Percentage of predictions that change under minor input perturbation"
     },
     "Correctability": {
         "purpose": "There must be a way to review, challenge, and correct the tool's decisions.",
         "baseline": "FAIL", "mitigated": "PARTIAL",
-        "headline": "3 of 7", "headline_label": "Governance criteria met",
-        "mitigated_headline": "4 of 8", "mitigated_headline_label": "Governance criteria met",
+        "headline": "3 of 7", "headline_label": "Checklist criteria met",
+        "mitigated_headline": "4 of 8", "mitigated_headline_label": "Checklist criteria met",
         "baseline_finding": "Met 3 of 7 checklist criteria, below the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + ". The pipeline lacked a clinician override, a patient challenge mechanism, an audit trail, and model version history. The dashboard partially addresses this through transparent communication of predictions and uncertainty.",
         "mitigated_finding": "Confidence-based flagging was added, so predictions with model confidence between " + tt("30% and 70%", CONFIDENCE_BAND_EXPLANATION) + " are flagged for clinician review (10.3% of test cases), adding a new checklist item. Because the checklist total grew alongside it, the 80% pass " + tt("threshold", THRESH_CHECKLIST_CORR) + " became harder to reach rather than easier, so the criterion remains unmet.",
         "metrics": "Proportion of correctability checklist criteria met (qualitative assessment)"
@@ -269,8 +270,8 @@ criteria = {
     "Ethicality": {
         "purpose": "The tool must meet ethical and legal standards and respect patient rights.",
         "baseline": "PASS", "mitigated": "PASS",
-        "headline": "7 of 8", "headline_label": "Ethics criteria met",
-        "mitigated_headline": "7 of 8", "mitigated_headline_label": "Ethics criteria met",
+        "headline": "7 of 8", "headline_label": "Checklist criteria met",
+        "mitigated_headline": "7 of 8", "mitigated_headline_label": "Checklist criteria met",
         "baseline_finding": "Met 7 of 8 checklist criteria (87.5%), above the 80% " + tt("threshold", THRESH_CHECKLIST_ETH) + ". The one gap was that consent practices for secondary ML use were not available within the dataset documentation.",
         "mitigated_finding": "Unchanged, as the informed consent limitation is inherent to retrospective clinical datasets.",
         "metrics": "Proportion of ethicality checklist criteria met (qualitative assessment)"
@@ -551,14 +552,20 @@ with tabs[2]:
         <tr style='border-bottom:1px solid #f0e0e5;'>
             <td style='padding:0.6rem 0.7rem; font-weight:600; color:{DARK}; white-space:nowrap;'>{name}</td>
             <td style='padding:0.6rem 0.7rem;'>
-                <div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'>
-                    <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK}; display:inline-block; min-width:105px;'>{data['headline']}</span>
+                <div style='display:grid; grid-template-columns:118px auto; align-items:center; justify-items:start; gap:0.6rem;'>
+                    <div style='display:flex; flex-direction:column;'>
+                        <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK};'>{data['headline']}</span>
+                        <span style='font-size:0.65rem; color:#888; text-transform:uppercase; letter-spacing:0.02em;'>{data['headline_label']}</span>
+                    </div>
                     {badge(data['baseline'])}
                 </div>
             </td>
             <td style='padding:0.6rem 0.7rem;'>
-                <div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'>
-                    <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK}; display:inline-block; min-width:105px;'>{data['mitigated_headline']}</span>
+                <div style='display:grid; grid-template-columns:118px auto; align-items:center; justify-items:start; gap:0.6rem;'>
+                    <div style='display:flex; flex-direction:column;'>
+                        <span style='font-variant-numeric:tabular-nums; font-size:0.82rem; color:{DARK};'>{data['mitigated_headline']}</span>
+                        <span style='font-size:0.65rem; color:#888; text-transform:uppercase; letter-spacing:0.02em;'>{data['mitigated_headline_label']}</span>
+                    </div>
                     {badge(data['mitigated'])}
                 </div>
             </td>
@@ -567,8 +574,14 @@ with tabs[2]:
     st.markdown(f"""
     <div class='card' style='margin-bottom:1.5rem;'>
         <div class='rule-label' style='margin-bottom:0.4rem;'>At a Glance: All Six Criteria</div>
-        <div style='margin-bottom:0.5rem;'><span style='letter-spacing:0.15rem; font-size:1.1rem;'><span style='color:{PASS_COLOR};'>●●●</span><span style='color:#d9b3bd;'>○○○</span></span> <span style='font-size:0.78rem; color:#666;'>3 of 6 pass at baseline</span></div>
-        <div style='font-size:0.82rem; color:#666; margin-bottom:0.8rem;'>Every criterion, baseline and after mitigation, in one view. Use the toggle below for the full detail behind each result.</div>
+        <div style='margin-bottom:0.3rem;'>
+            <span style='letter-spacing:0.15rem; font-size:1.1rem;'>{dot_row(pass_n=baseline_counts['PASS'], fail_n=baseline_counts['FAIL'])}</span>
+            <span style='font-size:0.78rem; color:#666;'>{baseline_counts['PASS']} of {len(criteria)} pass at baseline</span>
+        </div>
+        <div style='margin-bottom:0.5rem;'>
+            <span style='letter-spacing:0.15rem; font-size:1.1rem;'>{dot_row(pass_n=mitigated_counts['PASS'], partial_n=mitigated_counts['PARTIAL'], fail_n=mitigated_counts['FAIL'])}</span>
+            <span style='font-size:0.78rem; color:#666;'>{mitigated_counts['PASS']} pass, {mitigated_counts['PARTIAL']} partial, {mitigated_counts['FAIL']} fail after mitigation</span>
+        </div>
         <div style='overflow-x:auto;'>
         <table style='width:100%; border-collapse:collapse; font-size:0.85rem;'>
             <thead>
@@ -676,7 +689,7 @@ with tabs[2]:
     # ── 1. BIAS SUPPRESSION MITIGATION ──
     st.markdown("### 1. Bias Suppression Mitigation")
     st.markdown(f"""
-    <div class='card' style='border-left:4px solid {PASS_COLOR};'>
+    <div class='card' style='border-left:4px solid {PARTIAL_COLOR};'>
         <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;'>
             <span class='rule-name'>Bias Suppression</span>
             <span class='badge partial-badge'>PARTIAL</span>
@@ -742,6 +755,19 @@ with tabs[2]:
         </div>
         """, unsafe_allow_html=True)
 
+    st.markdown(f"""
+    <div class='card' style='border-left:4px solid {PRIMARY}; margin-top:0.8rem;'>
+        <div style='font-size:0.82rem; font-weight:600; color:{PRIMARY}; text-transform:uppercase; margin-bottom:0.4rem;'>The Cost of Fairness</div>
+        <div style='font-size:0.88rem; color:#444; line-height:1.6;'>
+            This fairness gain came with a measurable accuracy trade-off: AUC-ROC fell from 0.957 to
+            0.895 after mitigation (see the <strong>Accuracy</strong> criterion above), while female recall
+            rose from 70.0% to 90.0% and both fairness measures roughly halved their distance to threshold.
+            Overall accuracy barely moved (89.1% → 89.7%), so most of that AUC-ROC drop reflects a smaller
+            margin of confidence between classes rather than more misclassified patients.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # ── 2. CORRECTABILITY MITIGATION ──
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     st.markdown("### 2. Correctability Mitigation")
@@ -784,8 +810,9 @@ with tabs[2]:
         <div style='font-size:0.92rem; color:#444; line-height:1.6;'>
             The mitigation strategy improved procedural fairness by reducing disparities between
             demographic groups and introducing a mechanism for clinician oversight. Notably, female recall
-            improved without any reduction in male recall. However, fairness was not fully achieved, as both
-            formal fairness measures remained above threshold and limitations in dataset representativeness
+            improved without any reduction in male recall, and this came at a measurable but modest cost:
+            AUC-ROC fell from 0.957 to 0.895. However, fairness was not fully achieved, as both formal
+            fairness measures remained above threshold and limitations in dataset representativeness
             and governance mechanisms remained.
         </div>
     </div>
@@ -900,6 +927,25 @@ female respondents ({female_pct}%) and English-only distribution may limit the g
         Note: Accuracy was assessed computationally through the ML pipeline. The survey did not
         include a question designed to isolate public perceptions of accuracy as a procedural fairness criterion.
     </div>""", unsafe_allow_html=True)
+
+    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+    st.markdown("### Overall Outcome")
+    st.markdown(f"""
+    <div class='card' style='border-left:4px solid #ccc; background:#fff0f3;'>
+        <div style='font-size:0.92rem; color:#444; line-height:1.6;'>
+            This survey adds a public perspective alongside the technical fairness assessment in the
+            previous tab. Where that assessment measured whether the model meets a fixed set of fairness
+            criteria, this survey asked what people actually expect from healthcare AI in the first
+            place, and the two do not always point the same way. Respondents were most united on wanting
+            the ability to question and oversee AI decisions and on being told when AI or their data is
+            in use, more divided on whether equal performance matters more than raw accuracy, and split
+            almost evenly on what "fair" even means, treating every patient identically or aiming for
+            equal outcomes across groups. That disagreement matters: no single technical fix satisfies
+            every definition of fairness at once. The <strong>Discussion</strong> tab brings this public
+            perspective together with the technical results to consider what they mean side by side.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     with st.expander("See remaining survey questions: responsibility and trust in AI"):

@@ -27,7 +27,17 @@
       "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8503)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8503)",
       "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%streamlit%finaldashboard%'\\\\\" | Select-Object ProcessId\" 2>&1)",
-      "PowerShell(Get-CimInstance *)"
+      "PowerShell(Get-CimInstance *)",
+      "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8505)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8505)",
+      "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8506)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8506)",
+      "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8507)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8507)",
+      "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8508)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8508)",
+      "Bash(nohup python -m streamlit run app/finaldashboard.py --server.headless true --server.port 8510)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8510)"
     ]
   }
 }
