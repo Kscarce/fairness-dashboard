@@ -1,0 +1,439 @@
+================================================================================
+SLIDE 1
+--- shape: TEXT_BOX (17) TextBox 3
+MSC DISSERTATION DEFENSE
+--- shape: TEXT_BOX (17) TextBox 4
+Procedural Fairness in
+Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 5
+Evaluating and Mitigating Bias in a Heart Disease Prediction Model
+--- shape: TEXT_BOX (17) TextBox 7
+Kaylee Scarce
+--- shape: TEXT_BOX (17) TextBox 8
+Newcastle University · 2026
+--- shape: TEXT_BOX (17) TextBox 9
+Supervised by Dr Vlad González-Zelaya
+================================================================================
+SLIDE 2
+--- shape: TEXT_BOX (17) TextBox 1
+OVERVIEW
+--- shape: TEXT_BOX (17) TextBox 2
+What We'll Cover
+--- shape: TEXT_BOX (17) TextBox 4
+01
+--- shape: TEXT_BOX (17) TextBox 5
+Motivation &
+Research Question
+--- shape: TEXT_BOX (17) TextBox 7
+02
+--- shape: TEXT_BOX (17) TextBox 8
+Data &
+Methodology
+--- shape: TEXT_BOX (17) TextBox 10
+03
+--- shape: TEXT_BOX (17) TextBox 11
+Baseline
+Results
+--- shape: TEXT_BOX (17) TextBox 13
+04
+--- shape: TEXT_BOX (17) TextBox 14
+Fairness Problems
+& Root Causes
+--- shape: TEXT_BOX (17) TextBox 16
+05
+--- shape: TEXT_BOX (17) TextBox 17
+Mitigation
+& Results
+--- shape: TEXT_BOX (17) TextBox 19
+06
+--- shape: TEXT_BOX (17) TextBox 20
+Survey, Limitations
+& Recommendations
+--- shape: TEXT_BOX (17) TextBox 21
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 22
+1
+================================================================================
+SLIDE 3
+--- shape: TEXT_BOX (17) TextBox 1
+MOTIVATION
+--- shape: TEXT_BOX (17) TextBox 2
+Why Fairness, Not Just Accuracy?
+--- shape: TEXT_BOX (17) TextBox 3
+AI is increasingly used to support medical decisions, including predicting a patient's risk
+of heart disease. But an accurate model is not automatically a trustworthy one.
+--- shape: TEXT_BOX (17) TextBox 6
+Fair
+--- shape: TEXT_BOX (17) TextBox 7
+Performs consistently across
+different patient groups
+--- shape: TEXT_BOX (17) TextBox 10
+Transparent
+--- shape: TEXT_BOX (17) TextBox 11
+Decisions can be understood
+and questioned
+--- shape: TEXT_BOX (17) TextBox 14
+Accountable
+--- shape: TEXT_BOX (17) TextBox 15
+Mistakes can be reviewed
+and corrected
+--- shape: TEXT_BOX (17) TextBox 16
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 17
+2
+================================================================================
+SLIDE 4
+--- shape: TEXT_BOX (17) TextBox 1
+RESEARCH QUESTION
+--- shape: TEXT_BOX (17) TextBox 2
+“Does this model behave in a procedurally fair way,
+and can known mitigation strategies close the gaps it reveals?”
+--- shape: TEXT_BOX (17) TextBox 3
+Evaluated against six procedural fairness criteria, adapted from Leventhal's (1980)
+procedural justice framework for healthcare decision-making (Jabagi et al., 2025).
+--- shape: TEXT_BOX (17) TextBox 5
+Accuracy
+--- shape: TEXT_BOX (17) TextBox 7
+Bias Suppression
+--- shape: TEXT_BOX (17) TextBox 9
+Representativeness
+--- shape: TEXT_BOX (17) TextBox 11
+Consistency
+--- shape: TEXT_BOX (17) TextBox 13
+Correctability
+--- shape: TEXT_BOX (17) TextBox 15
+Ethicality
+--- shape: TEXT_BOX (17) TextBox 16
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 17
+3
+================================================================================
+SLIDE 5
+--- shape: TEXT_BOX (17) TextBox 1
+METHODOLOGY
+--- shape: TEXT_BOX (17) TextBox 2
+The Model and the Pipeline
+--- shape: TEXT_BOX (17) TextBox 4
+ALGORITHM
+--- shape: TEXT_BOX (17) TextBox 5
+Logistic regression classifier
+--- shape: TEXT_BOX (17) TextBox 7
+DATA
+--- shape: TEXT_BOX (17) TextBox 8
+UCI Heart Disease — 918 records
+--- shape: TEXT_BOX (17) TextBox 10
+SPLIT
+--- shape: TEXT_BOX (17) TextBox 11
+734 / 184, stratified 80/20
+--- shape: TEXT_BOX (17) TextBox 13
+PREDICTS
+--- shape: TEXT_BOX (17) TextBox 14
+Presence of heart disease
+--- shape: TEXT_BOX (17) TextBox 15
+THE PIPELINE
+--- shape: TEXT_BOX (17) TextBox 17
+918 patient
+records
+--- shape: TEXT_BOX (17) TextBox 18
+→
+--- shape: TEXT_BOX (17) TextBox 20
+734 train /
+184 test
+--- shape: TEXT_BOX (17) TextBox 21
+→
+--- shape: TEXT_BOX (17) TextBox 23
+6 criteria
+tested
+--- shape: TEXT_BOX (17) TextBox 24
+→
+--- shape: TEXT_BOX (17) TextBox 26
+2 mitigations
+applied
+--- shape: TEXT_BOX (17) TextBox 27
+→
+--- shape: TEXT_BOX (17) TextBox 29
+Re-tested
+on all 6
+--- shape: TEXT_BOX (17) TextBox 32
+Why keep sex and age as inputs?
+--- shape: TEXT_BOX (17) TextBox 33
+Removing them would not stop the model learning those patterns indirectly through other
+clinical measurements — keeping them in lets that pattern be measured directly instead.
+--- shape: TEXT_BOX (17) TextBox 34
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 35
+4
+================================================================================
+SLIDE 6
+--- shape: TEXT_BOX (17) TextBox 1
+BASELINE RESULTS
+--- shape: TEXT_BOX (17) TextBox 2
+A Strong Model — On the Surface
+--- shape: TEXT_BOX (17) TextBox 4
+0.957
+--- shape: TEXT_BOX (17) TextBox 5
+AUC-ROC  (threshold: ≥ 0.80)
+--- shape: TEXT_BOX (17) TextBox 7
+89.1%
+--- shape: TEXT_BOX (17) TextBox 8
+Overall accuracy
+--- shape: TEXT_BOX (17) TextBox 9
+3 OF 6 PROCEDURAL FAIRNESS CRITERIA PASSED AT BASELINE
+--- shape: TEXT_BOX (17) TextBox 11
+Accuracy
+--- shape: TEXT_BOX (17) TextBox 13
+Bias
+Suppression
+--- shape: TEXT_BOX (17) TextBox 15
+Representativeness
+--- shape: TEXT_BOX (17) TextBox 17
+Consistency
+--- shape: TEXT_BOX (17) TextBox 19
+Correctability
+--- shape: TEXT_BOX (17) TextBox 21
+Ethicality
+--- shape: TEXT_BOX (17) TextBox 22
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 23
+5
+================================================================================
+SLIDE 7
+--- shape: TEXT_BOX (17) TextBox 1
+FAIRNESS PROBLEMS · 1 OF 2
+--- shape: TEXT_BOX (17) TextBox 2
+Female Patients Were Missed More Often
+--- shape: TEXT_BOX (17) TextBox 4
+Recall by sex, heart-disease-present class — the percentage of actual cases the model correctly identified.
+--- shape: TEXT_BOX (17) TextBox 6
+Equalised odds diff: 0.235   ·   Demographic parity diff: 0.457   —   both exceed the ±0.10 threshold
+--- shape: TEXT_BOX (17) TextBox 7
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 8
+6
+================================================================================
+SLIDE 8
+--- shape: TEXT_BOX (17) TextBox 1
+FAIRNESS PROBLEMS · 2 OF 2
+--- shape: TEXT_BOX (17) TextBox 2
+Two More Gaps: Data and Oversight
+--- shape: TEXT_BOX (17) TextBox 6
+CORRECTABILITY
+--- shape: TEXT_BOX (17) TextBox 7
+3 of 7
+--- shape: TEXT_BOX (17) TextBox 8
+checklist criteria met  (threshold: ≥ 80%)
+--- shape: TEXT_BOX (17) TextBox 9
+No clinician override, no patient challenge mechanism,
+no audit trail, and no model version history.
+--- shape: TEXT_BOX (17) TextBox 10
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 11
+7
+================================================================================
+SLIDE 9
+--- shape: TEXT_BOX (17) TextBox 1
+ROOT CAUSES
+--- shape: TEXT_BOX (17) TextBox 2
+Why These Gaps Exist
+--- shape: TEXT_BOX (17) TextBox 5
+Underrepresented in the data
+--- shape: TEXT_BOX (17) TextBox 7
+Female patients make up 21% of the dataset vs. 33% real-world CHD prevalence (BHF, 2021). The model learns less about this group — and recalls it less reliably.
+--- shape: TEXT_BOX (17) TextBox 10
+No review mechanisms by design
+--- shape: TEXT_BOX (17) TextBox 12
+The original pipeline had no clinician override, patient challenge process, audit trail, or version history built in from the start.
+--- shape: TEXT_BOX (17) TextBox 13
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 14
+8
+================================================================================
+SLIDE 10
+--- shape: TEXT_BOX (17) TextBox 1
+MITIGATION APPROACH
+--- shape: TEXT_BOX (17) TextBox 2
+Two Targeted Interventions
+--- shape: TEXT_BOX (17) TextBox 6
+1
+--- shape: TEXT_BOX (17) TextBox 7
+Fairness-Aware Training
+--- shape: TEXT_BOX (17) TextBox 9
+ADDRESSES BIAS SUPPRESSION
+--- shape: TEXT_BOX (17) TextBox 10
+An ExponentiatedGradient algorithm, constrained by Fairlearn's EqualizedOdds criterion (tolerance 0.01), re-weighted the training data so error rates moved closer together across male and female patients.
+--- shape: TEXT_BOX (17) TextBox 14
+2
+--- shape: TEXT_BOX (17) TextBox 15
+Confidence-Based Flagging
+--- shape: TEXT_BOX (17) TextBox 17
+ADDRESSES CORRECTABILITY
+--- shape: TEXT_BOX (17) TextBox 18
+Predictions with model confidence between 30% and 70% are automatically flagged for clinician review — adding a human check on the cases the model is least sure about.
+--- shape: TEXT_BOX (17) TextBox 19
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 20
+9
+================================================================================
+SLIDE 11
+--- shape: TEXT_BOX (17) TextBox 1
+RESULTS · 1 OF 2
+--- shape: TEXT_BOX (17) TextBox 2
+The Gap Narrowed — But Didn't Close
+--- shape: TEXT_BOX (17) TextBox 5
+Female recall rose 70.0% → 90.0% with no drop in male recall — at the cost of a modest accuracy trade-off: AUC-ROC 0.957 → 0.895.
+--- shape: TEXT_BOX (17) TextBox 6
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 7
+10
+================================================================================
+SLIDE 12
+--- shape: TEXT_BOX (17) TextBox 1
+RESULTS · 2 OF 2
+--- shape: TEXT_BOX (17) TextBox 2
+Two Criteria Moved From Fail to Partial
+--- shape: TEXT_BOX (17) TextBox 5
+Representativeness stayed at 0.64 — unchanged, because mitigation cannot fix a data problem.
+--- shape: TEXT_BOX (17) TextBox 6
+AFTER MITIGATION: 3 PASS · 2 PARTIAL · 1 FAIL
+--- shape: TEXT_BOX (17) TextBox 8
+Accuracy
+--- shape: TEXT_BOX (17) TextBox 10
+Bias
+Suppression
+--- shape: TEXT_BOX (17) TextBox 12
+Representativeness
+--- shape: TEXT_BOX (17) TextBox 14
+Consistency
+--- shape: TEXT_BOX (17) TextBox 16
+Correctability
+--- shape: TEXT_BOX (17) TextBox 18
+Ethicality
+--- shape: TEXT_BOX (17) TextBox 19
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 20
+11
+================================================================================
+SLIDE 13
+--- shape: TEXT_BOX (17) TextBox 1
+PUBLIC SURVEY · N = 325
+--- shape: TEXT_BOX (17) TextBox 2
+What Do People Actually Expect?
+--- shape: TEXT_BOX (17) TextBox 4
+Sample: predominantly female (67%) and non-technical (83%) respondents — a sampling limitation revisited later.
+--- shape: TEXT_BOX (17) TextBox 5
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 6
+12
+================================================================================
+SLIDE 14
+--- shape: TEXT_BOX (17) TextBox 1
+THE KEY CONNECTION
+--- shape: TEXT_BOX (17) TextBox 2
+The Weakest Result Is the Public's Top Priority
+--- shape: TEXT_BOX (17) TextBox 6
+Correctability
+--- shape: TEXT_BOX (17) TextBox 7
+was the pipeline's weakest technical criterion — still only Partial after mitigation.
+--- shape: TEXT_BOX (17) TextBox 9
+Human oversight
+--- shape: TEXT_BOX (17) TextBox 10
+was the public's strongest and most consistent expectation (93% / 92%).
+--- shape: TEXT_BOX (17) TextBox 12
+Two independent sources point at the same gap
+--- shape: TEXT_BOX (17) TextBox 13
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 14
+13
+================================================================================
+SLIDE 15
+--- shape: TEXT_BOX (17) TextBox 1
+LIMITATIONS
+--- shape: TEXT_BOX (17) TextBox 2
+What This Study Doesn't Settle
+--- shape: TEXT_BOX (17) TextBox 5
+Small subgroups
+--- shape: TEXT_BOX (17) TextBox 6
+The female test set is only 39 patients — fairness estimates carry real uncertainty.
+--- shape: TEXT_BOX (17) TextBox 9
+A data problem, not just a model one
+--- shape: TEXT_BOX (17) TextBox 10
+Representativeness cannot be fixed by better algorithms alone.
+--- shape: TEXT_BOX (17) TextBox 13
+Survey sampling bias
+--- shape: TEXT_BOX (17) TextBox 14
+Convenience/snowball sample, skewed female and non-technical, English-only.
+--- shape: TEXT_BOX (17) TextBox 17
+Correctability scoring
+--- shape: TEXT_BOX (17) TextBox 18
+The checklist total grew alongside the fix, complicating direct comparison.
+--- shape: TEXT_BOX (17) TextBox 19
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 20
+14
+================================================================================
+SLIDE 16
+--- shape: TEXT_BOX (17) TextBox 1
+RECOMMENDATIONS
+--- shape: TEXT_BOX (17) TextBox 2
+Three Priorities for Responsible Deployment
+--- shape: TEXT_BOX (17) TextBox 5
+1
+--- shape: TEXT_BOX (17) TextBox 6
+Collect more representative clinical data
+--- shape: TEXT_BOX (17) TextBox 8
+Prioritise female-representative datasets before deployment.
+--- shape: TEXT_BOX (17) TextBox 11
+2
+--- shape: TEXT_BOX (17) TextBox 12
+Build correctability infrastructure
+--- shape: TEXT_BOX (17) TextBox 14
+Clinician override, patient challenge, audit trails, and version control.
+--- shape: TEXT_BOX (17) TextBox 17
+3
+--- shape: TEXT_BOX (17) TextBox 18
+Establish informed consent frameworks
+--- shape: TEXT_BOX (17) TextBox 20
+For the secondary use of clinical data in ML research.
+--- shape: TEXT_BOX (17) TextBox 21
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 22
+15
+================================================================================
+SLIDE 17
+--- shape: TEXT_BOX (17) TextBox 1
+CONCLUSION
+--- shape: TEXT_BOX (17) TextBox 2
+Fairness Requires More Than a Better Model
+--- shape: TEXT_BOX (17) TextBox 3
+Three of six procedural fairness criteria passed at baseline. Mitigation narrowed the gender recall gap and strengthened oversight — at a modest accuracy cost — without fully resolving either. The priority that matters most now is correctability: the model's weakest technical result, and the public's strongest expectation.
+--- shape: TEXT_BOX (17) TextBox 4
+AFTER MITIGATION
+--- shape: TEXT_BOX (17) TextBox 6
+Accuracy
+--- shape: TEXT_BOX (17) TextBox 8
+Bias
+Suppression
+--- shape: TEXT_BOX (17) TextBox 10
+Representativeness
+--- shape: TEXT_BOX (17) TextBox 12
+Consistency
+--- shape: TEXT_BOX (17) TextBox 14
+Correctability
+--- shape: TEXT_BOX (17) TextBox 16
+Ethicality
+--- shape: TEXT_BOX (17) TextBox 18
+Fixing fairness needs better data and stronger oversight — not modelling alone.
+--- shape: TEXT_BOX (17) TextBox 19
+Procedural Fairness in Healthcare AI
+--- shape: TEXT_BOX (17) TextBox 20
+16
+================================================================================
+SLIDE 18
+--- shape: TEXT_BOX (17) TextBox 3
+Thank You
+--- shape: TEXT_BOX (17) TextBox 4
+Questions?
+--- shape: TEXT_BOX (17) TextBox 6
+Kaylee Scarce  ·  Newcastle University  ·  2026
+--- shape: TEXT_BOX (17) TextBox 7
+Supervised by Dr Vlad González-Zelaya
