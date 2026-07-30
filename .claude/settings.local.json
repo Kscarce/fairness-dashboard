@@ -49,7 +49,11 @@
       "Bash(python -m pip install --quiet python-pptx matplotlib)",
       "Read(//c/Program Files/Microsoft Office/**)",
       "Read(//c/Program Files \\\\\\(x86\\\\\\)/**)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "PowerShell(Get-Command *)",
+      "Bash(python3)",
+      "Bash(tasklist)",
+      "Bash(git show-ref *)"
     ]
   }
 }
